@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -56,6 +58,7 @@ type PackageItem struct {
 	Namespace   string
 	Name        string
 	Path        string
+	LocalPath   string // Full local path for preview
 	Type        repo.PackageType
 	IsInstalled bool
 	HasUpdate   bool
@@ -73,6 +76,7 @@ type Model struct {
 	manager   *pkgmgr.Manager
 	message   string
 	quitting  bool
+	preview   string // Cached preview content
 }
 
 // Styles
@@ -98,15 +102,28 @@ var (
 	installedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("42"))
 
-	updateStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("214"))
-
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
 
 	messageStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("42")).
 			Bold(true)
+
+	previewTitleStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("99")).
+				MarginBottom(1)
+
+	previewBorderStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("241")).
+				Padding(1)
+
+	previewContentStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252"))
+
+	listPaneStyle = lipgloss.NewStyle().
+			Padding(0, 1)
 )
 
 // Key bindings
@@ -201,6 +218,12 @@ func (m *Model) LoadPackages() error {
 			continue
 		}
 
+		// Get local repo path for preview
+		repoLocalPath, err := repoStore.RepoLocalPath(r.Namespace)
+		if err != nil {
+			continue
+		}
+
 		for _, item := range items {
 			var tab Tab
 			switch item.Type {
@@ -217,10 +240,25 @@ func (m *Model) LoadPackages() error {
 			}
 
 			namespacedName := pkgmgr.MakeNamespacedName(r.Namespace, item.Name)
+
+			// Determine the file to preview
+			localPath := filepath.Join(repoLocalPath, item.Path)
+			if item.Type == repo.TypeSkill {
+				// Skills are directories, look for SKILL.md
+				for _, name := range []string{"SKILL.md", "skill.md"} {
+					candidate := filepath.Join(localPath, name)
+					if _, err := os.Stat(candidate); err == nil {
+						localPath = candidate
+						break
+					}
+				}
+			}
+
 			pkgItem := PackageItem{
 				Namespace:   r.Namespace,
 				Name:        item.Name,
 				Path:        item.Path,
+				LocalPath:   localPath,
 				Type:        item.Type,
 				IsInstalled: installedMap[namespacedName],
 			}
@@ -228,7 +266,49 @@ func (m *Model) LoadPackages() error {
 		}
 	}
 
+	// Load initial preview
+	m.updatePreview()
+
 	return nil
+}
+
+// loadPreview loads and returns preview content from a file (max 30 lines)
+func loadPreview(path string, maxLines int) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Sprintf("Unable to load preview:\n%v", err)
+	}
+
+	content := string(data)
+	lines := strings.Split(content, "\n")
+
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+		lines = append(lines, "\n... (truncated)")
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// updatePreview updates the preview content for the current selection
+func (m *Model) updatePreview() {
+	items := m.items[m.activeTab]
+	if len(items) == 0 || m.cursor >= len(items) {
+		m.preview = "No package selected"
+		return
+	}
+
+	item := items[m.cursor]
+	m.preview = loadPreview(item.LocalPath, 30)
+}
+
+// getCurrentItem returns the currently selected item or nil
+func (m *Model) getCurrentItem() *PackageItem {
+	items := m.items[m.activeTab]
+	if len(items) == 0 || m.cursor >= len(items) {
+		return nil
+	}
+	return &items[m.cursor]
 }
 
 // Init initializes the model
@@ -256,16 +336,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Tab), key.Matches(msg, keys.Right):
 			m.activeTab = Tab((int(m.activeTab) + 1) % len(m.tabs))
 			m.cursor = 0
+			m.updatePreview()
 			return m, nil
 
 		case key.Matches(msg, keys.Left):
 			m.activeTab = Tab((int(m.activeTab) - 1 + len(m.tabs)) % len(m.tabs))
 			m.cursor = 0
+			m.updatePreview()
 			return m, nil
 
 		case key.Matches(msg, keys.Up):
 			if m.cursor > 0 {
 				m.cursor--
+				m.updatePreview()
 			}
 			return m, nil
 
@@ -273,6 +356,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			items := m.items[m.activeTab]
 			if m.cursor < len(items)-1 {
 				m.cursor++
+				m.updatePreview()
 			}
 			return m, nil
 
@@ -337,36 +421,13 @@ func (m *Model) installSelected() tea.Cmd {
 	}
 }
 
-// View renders the UI
-func (m Model) View() string {
-	if m.quitting {
-		return ""
-	}
-
+// renderList renders the left pane with package list
+func (m Model) renderList(width, height int) string {
 	var b strings.Builder
 
-	// Title
-	b.WriteString(titleStyle.Render("jd pkg browse"))
-	b.WriteString("\n\n")
-
-	// Tabs
-	var tabs []string
-	for _, tab := range m.tabs {
-		style := tabStyle
-		if tab == m.activeTab {
-			style = activeTabStyle
-		}
-		tabs = append(tabs, style.Render(fmt.Sprintf("[%s]", tab.String())))
-	}
-	b.WriteString(strings.Join(tabs, " "))
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("─", m.width))
-	b.WriteString("\n\n")
-
-	// Items
 	items := m.items[m.activeTab]
 	if len(items) == 0 {
-		b.WriteString(helpStyle.Render("  No packages found"))
+		b.WriteString(helpStyle.Render("No packages found"))
 		b.WriteString("\n")
 	} else {
 		// Group by namespace
@@ -398,48 +459,154 @@ func (m Model) View() string {
 					checkbox = "[*]"
 				}
 
-				status := ""
-				if item.IsInstalled {
-					status = installedStyle.Render("installed")
-				} else if item.HasUpdate {
-					status = updateStyle.Render("update available")
-				}
-
 				name := item.Name
 				if globalIdx == m.cursor {
 					name = selectedStyle.Render(name)
 				}
 
-				line := fmt.Sprintf("%s %s %s", cursor, checkbox, name)
-				if status != "" {
-					padding := m.width - lipgloss.Width(line) - lipgloss.Width(status) - 2
-					if padding < 1 {
-						padding = 1
-					}
-					line += strings.Repeat(" ", padding) + status
+				// Truncate name if too long
+				maxNameLen := width - 10
+				if maxNameLen < 10 {
+					maxNameLen = 10
 				}
+				if len(name) > maxNameLen {
+					name = name[:maxNameLen-3] + "..."
+				}
+
+				line := fmt.Sprintf("%s%s %s", cursor, checkbox, name)
+
+				// Add status indicator
+				if item.IsInstalled {
+					line += " " + installedStyle.Render("✓")
+				}
+
 				b.WriteString(line)
 				b.WriteString("\n")
 				globalIdx++
 			}
-			b.WriteString("\n")
 		}
 	}
 
+	return b.String()
+}
+
+// renderPreview renders the right pane with preview content
+func (m Model) renderPreview(width, height int) string {
+	var b strings.Builder
+
+	item := m.getCurrentItem()
+	if item == nil {
+		return previewBorderStyle.Width(width - 4).Height(height - 4).Render("No package selected")
+	}
+
+	// Title
+	title := previewTitleStyle.Render(fmt.Sprintf("📄 %s", item.Name))
+	b.WriteString(title)
+	b.WriteString("\n")
+
+	// Path info
+	pathInfo := helpStyle.Render(fmt.Sprintf("Path: %s", item.Path))
+	b.WriteString(pathInfo)
+	b.WriteString("\n\n")
+
+	// Content
+	content := m.preview
+	// Wrap content to fit width
+	contentLines := strings.Split(content, "\n")
+	maxContentWidth := width - 6
+	if maxContentWidth < 20 {
+		maxContentWidth = 20
+	}
+
+	var wrappedLines []string
+	for _, line := range contentLines {
+		if len(line) > maxContentWidth {
+			line = line[:maxContentWidth-3] + "..."
+		}
+		wrappedLines = append(wrappedLines, line)
+	}
+
+	// Limit height
+	maxLines := height - 8
+	if maxLines < 5 {
+		maxLines = 5
+	}
+	if len(wrappedLines) > maxLines {
+		wrappedLines = wrappedLines[:maxLines]
+		wrappedLines = append(wrappedLines, "...")
+	}
+
+	b.WriteString(previewContentStyle.Render(strings.Join(wrappedLines, "\n")))
+
+	return previewBorderStyle.Width(width - 4).Render(b.String())
+}
+
+// View renders the UI
+func (m Model) View() string {
+	if m.quitting {
+		return ""
+	}
+
+	var b strings.Builder
+
+	// Title
+	b.WriteString(titleStyle.Render("jd pkg browse"))
+	b.WriteString("\n\n")
+
+	// Tabs
+	var tabs []string
+	for _, tab := range m.tabs {
+		style := tabStyle
+		if tab == m.activeTab {
+			style = activeTabStyle
+		}
+		tabs = append(tabs, style.Render(fmt.Sprintf("[%s]", tab.String())))
+	}
+	b.WriteString(strings.Join(tabs, " "))
+	b.WriteString("\n")
+	b.WriteString(strings.Repeat("─", m.width))
+	b.WriteString("\n\n")
+
+	// Calculate pane dimensions (30:70 split)
+	headerHeight := 5 // title + tabs + separator
+	footerHeight := 4 // message + help
+	contentHeight := m.height - headerHeight - footerHeight
+	if contentHeight < 10 {
+		contentHeight = 10
+	}
+
+	listWidth := m.width * 30 / 100
+	if listWidth < 20 {
+		listWidth = 20
+	}
+	previewWidth := m.width - listWidth - 2 // 2 for separator
+	if previewWidth < 30 {
+		previewWidth = 30
+	}
+
+	// Render list and preview panes
+	listContent := m.renderList(listWidth, contentHeight)
+	previewContent := m.renderPreview(previewWidth, contentHeight)
+
+	// Style the list pane
+	listPane := listPaneStyle.Width(listWidth).Height(contentHeight).Render(listContent)
+
+	// Join panes horizontally
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, listPane, previewContent)
+	b.WriteString(mainContent)
+	b.WriteString("\n")
+
 	// Message
 	if m.message != "" {
-		b.WriteString("\n")
 		b.WriteString(messageStyle.Render(m.message))
 		b.WriteString("\n")
 	}
 
 	// Help
-	b.WriteString("\n")
 	b.WriteString(strings.Repeat("─", m.width))
 	b.WriteString("\n")
 	help := helpStyle.Render("↑/↓: navigate  ←/→/tab: switch tab  space: select  a: select all  enter: install  q: quit")
 	b.WriteString(help)
-	b.WriteString("\n")
 
 	return b.String()
 }

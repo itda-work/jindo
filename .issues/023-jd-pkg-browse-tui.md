@@ -1,13 +1,14 @@
 ---
 number: 23
-title: 'jd pkg browse TUI 인터랙티브 모드'
-state: open
+title: jd pkg browse TUI 인터랙티브 모드
+state: done
 labels:
   - feat
   - tui
 assignees: []
-created_at: 2026-01-21T00:55:00Z
-updated_at: 2026-01-21T00:55:00Z
+created_at: '2026-01-21T00:55:00Z'
+updated_at: '2026-01-20T16:22:05Z'
+closed_at: '2026-01-20T16:22:05Z'
 ---
 
 ## Background
