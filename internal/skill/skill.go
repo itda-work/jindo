@@ -107,6 +107,28 @@ func (s *Store) expandDir() (string, error) {
 	return dir, nil
 }
 
+// findSkillFile finds the actual skill file in a directory
+// Returns the full path with the actual filename (handles case-insensitive filesystems)
+func findSkillFile(skillDir string) (string, error) {
+	entries, err := os.ReadDir(skillDir)
+	if err != nil {
+		return "", err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		lower := strings.ToLower(name)
+		if lower == "skill.md" {
+			return filepath.Join(skillDir, name), nil
+		}
+	}
+
+	return "", os.ErrNotExist
+}
+
 // Get retrieves a specific skill by name
 func (s *Store) Get(name string) (*Skill, error) {
 	dir, err := s.expandDir()
@@ -116,13 +138,10 @@ func (s *Store) Get(name string) (*Skill, error) {
 
 	skillDir := filepath.Join(dir, name)
 
-	// Try SKILL.md first, then skill.md
-	skillFile := filepath.Join(skillDir, "SKILL.md")
-	if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-		skillFile = filepath.Join(skillDir, "skill.md")
-		if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-			return nil, os.ErrNotExist
-		}
+	// Find the actual skill file (handles case-insensitive filesystems)
+	skillFile, err := findSkillFile(skillDir)
+	if err != nil {
+		return nil, os.ErrNotExist
 	}
 
 	skill, err := ParseSkillFile(skillFile)
@@ -146,13 +165,10 @@ func (s *Store) GetContent(name string) (string, error) {
 
 	skillDir := filepath.Join(dir, name)
 
-	// Try SKILL.md first, then skill.md
-	skillFile := filepath.Join(skillDir, "SKILL.md")
-	if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-		skillFile = filepath.Join(skillDir, "skill.md")
-		if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-			return "", os.ErrNotExist
-		}
+	// Find the actual skill file (handles case-insensitive filesystems)
+	skillFile, err := findSkillFile(skillDir)
+	if err != nil {
+		return "", os.ErrNotExist
 	}
 
 	content, err := os.ReadFile(skillFile)
@@ -187,13 +203,10 @@ func (s *Store) List() ([]*Skill, error) {
 
 		skillDir := filepath.Join(dir, entry.Name())
 
-		// Try SKILL.md first, then skill.md
-		skillFile := filepath.Join(skillDir, "SKILL.md")
-		if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-			skillFile = filepath.Join(skillDir, "skill.md")
-			if _, err := os.Stat(skillFile); os.IsNotExist(err) {
-				continue
-			}
+		// Find the actual skill file (handles case-insensitive filesystems)
+		skillFile, err := findSkillFile(skillDir)
+		if err != nil {
+			continue
 		}
 
 		skill, err := ParseSkillFile(skillFile)
