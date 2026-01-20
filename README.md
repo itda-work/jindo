@@ -37,7 +37,7 @@ irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
 
 ```bash
 # Install to a custom directory
-INSTALL_DIR=~/bin curl -fsSL https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.sh | bash
+JD_INSTALL_DIR=~/bin curl -fsSL https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.sh | bash
 
 # Install a specific version
 VERSION=v0.1.0 curl -fsSL https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.sh | bash
@@ -47,7 +47,7 @@ VERSION=v0.1.0 curl -fsSL https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/
 
 ```powershell
 # Install to a custom directory
-$env:INSTALL_DIR = "C:\tools"; irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
+$env:JD_INSTALL_DIR = "C:\tools"; irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
 
 # Install a specific version
 $env:VERSION = "v0.1.0"; irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex

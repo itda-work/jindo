@@ -4,18 +4,18 @@
 # Installation script
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/itda-work/itda-jindo/main/install.sh | bash
+#   curl -fsSL https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.sh | bash
 #
 # Options:
-#   INSTALL_DIR - Installation directory (default: /usr/local/bin)
-#   VERSION     - Specific version to install (default: latest)
+#   VERSION        - Specific version to install (default: latest)
+#   JD_INSTALL_DIR - Installation directory (default: ~/.local/bin)
 #
 
-set -e
+set -euo pipefail
 
 REPO="itda-work/itda-jindo"
 BINARY="jd"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 
 # Colors
 RED='\033[0;31m'
@@ -108,15 +108,18 @@ install() {
         info "Latest version: $version"
     fi
 
+    # Determine install directory
+    local install_dir="${JD_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
+    local install_path="${install_dir}/${BINARY}"
+
     # Construct download URL
-    # Expected format: jd-<os>-<arch> (or jd-<os>-<arch>.exe for Windows)
     local filename="${BINARY}-${os}-${arch}"
     if [ "$os" = "windows" ]; then
         filename="${filename}.exe"
     fi
     download_url="https://github.com/${REPO}/releases/download/${version}/${filename}"
 
-    info "Downloading from: $download_url"
+    info "Downloading ${filename}..."
 
     # Create temporary directory
     tmp_dir=$(mktemp -d)
@@ -127,44 +130,45 @@ install() {
         error "Failed to download $download_url"
     fi
 
+    # Make executable
+    chmod +x "$tmp_dir/$BINARY"
+
     # Install
-    info "Installing to $INSTALL_DIR..."
+    info "Installing to ${install_path}..."
 
-    # Check if we need sudo
-    if [ -w "$INSTALL_DIR" ]; then
-        mv "$tmp_dir/$BINARY" "$INSTALL_DIR/$BINARY"
-        chmod +x "$INSTALL_DIR/$BINARY"
-    else
-        warn "Need sudo permission to install to $INSTALL_DIR"
-        sudo mv "$tmp_dir/$BINARY" "$INSTALL_DIR/$BINARY"
-        sudo chmod +x "$INSTALL_DIR/$BINARY"
+    # Create directory if it doesn't exist
+    if [[ ! -d "$install_dir" ]]; then
+        if mkdir -p "$install_dir" 2>/dev/null; then
+            :
+        else
+            warn "Requesting sudo permission to create ${install_dir}"
+            sudo mkdir -p "$install_dir"
+        fi
     fi
 
-    success "Installed $BINARY to $INSTALL_DIR/$BINARY"
-
-    # Verify installation
-    if command -v "$BINARY" &> /dev/null; then
-        info "Version: $($BINARY --version)"
+    if [[ -w "$install_dir" ]]; then
+        mv "$tmp_dir/$BINARY" "$install_path"
     else
-        echo ""
-        warn "$INSTALL_DIR is not in your PATH"
-        echo ""
-        echo "Add the following to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
-        echo ""
-        echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
-        echo ""
-        echo "Then restart your shell or run:"
-        echo ""
-        echo "  source ~/.bashrc  # or ~/.zshrc"
-        echo ""
+        warn "Requesting sudo permission to install to ${install_dir}"
+        sudo mv "$tmp_dir/$BINARY" "$install_path"
     fi
 
-    echo ""
-    success "Installation complete!"
-    echo ""
-    echo "Get started with:"
-    echo "  $BINARY --help"
-    echo ""
+    # Verify
+    if [[ -x "$install_path" ]]; then
+        success "Successfully installed jd ${version}"
+        echo ""
+        "$install_path" version
+        echo ""
+
+        # Check if install_dir is in PATH
+        if [[ ":$PATH:" != *":$install_dir:"* ]]; then
+            warn "Note: ${install_dir} is not in your PATH"
+            echo "  Add to your shell profile:"
+            echo "    export PATH=\"\$PATH:${install_dir}\""
+        fi
+    else
+        error "Installation failed"
+    fi
 }
 
 # Main

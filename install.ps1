@@ -6,31 +6,27 @@
 .DESCRIPTION
     Downloads and installs jd to the specified directory.
 
-.PARAMETER InstallDir
-    Installation directory (default: $env:LOCALAPPDATA\Programs\jd)
-
-.PARAMETER Version
-    Specific version to install (default: latest)
-
 .EXAMPLE
     # Install latest version
-    irm https://raw.githubusercontent.com/itda-work/itda-jindo/main/install.ps1 | iex
+    irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
 
 .EXAMPLE
     # Install to custom directory
-    $env:INSTALL_DIR = "C:\tools"; irm https://raw.githubusercontent.com/itda-work/itda-jindo/main/install.ps1 | iex
+    $env:JD_INSTALL_DIR = "C:\tools"; irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
 
 .EXAMPLE
     # Install specific version
-    $env:VERSION = "v0.1.0"; irm https://raw.githubusercontent.com/itda-work/itda-jindo/main/install.ps1 | iex
+    $env:VERSION = "v0.1.0"; irm https://cdn.jsdelivr.net/gh/itda-work/itda-jindo@main/install.ps1 | iex
+
+.NOTES
+    Installs to: $env:USERPROFILE\.local\bin\jd.exe
 #>
 
 $ErrorActionPreference = "Stop"
 
 $Repo = "itda-work/itda-jindo"
-$Binary = "jd"
-$DefaultInstallDir = Join-Path $env:LOCALAPPDATA "Programs\jd"
-$InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { $DefaultInstallDir }
+$BinaryName = "jd"
+$DefaultInstallDir = Join-Path $env:USERPROFILE ".local\bin"
 
 function Write-Info {
     param([string]$Message)
@@ -50,7 +46,7 @@ function Write-Warning {
     Write-Host $Message
 }
 
-function Write-Error {
+function Write-Error-Exit {
     param([string]$Message)
     Write-Host "ERROR: " -ForegroundColor Red -NoNewline
     Write-Host $Message
@@ -58,11 +54,11 @@ function Write-Error {
 }
 
 function Get-Architecture {
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+    $arch = $env:PROCESSOR_ARCHITECTURE
     switch ($arch) {
-        "X64" { return "amd64" }
-        "Arm64" { return "arm64" }
-        default { Write-Error "Unsupported architecture: $arch" }
+        "AMD64" { return "amd64" }
+        "ARM64" { return "arm64" }
+        default { Write-Error-Exit "Unsupported architecture: $arch" }
     }
 }
 
@@ -72,7 +68,7 @@ function Get-LatestVersion {
         return $response.tag_name
     }
     catch {
-        Write-Error "Failed to get latest version: $_"
+        Write-Error-Exit "Failed to get latest version: $_"
     }
 }
 
@@ -85,84 +81,71 @@ function Install-Jd {
     Write-Host "  +--------------------------------------+"
     Write-Host ""
 
+    Write-Info "Installing jd..."
+
+    # Detect architecture
     $arch = Get-Architecture
-    Write-Info "Detected Architecture: $arch"
+    Write-Info "Detected architecture: windows/$arch"
 
     # Get version
-    $version = if ($env:VERSION) {
-        Write-Info "Using specified version: $env:VERSION"
-        $env:VERSION
-    }
-    else {
+    $version = $env:VERSION
+    if (-not $version) {
         Write-Info "Fetching latest version..."
-        $v = Get-LatestVersion
-        Write-Info "Latest version: $v"
-        $v
+        $version = Get-LatestVersion
     }
+    Write-Info "Version: $version"
 
-    # Construct download URL
-    $filename = "$Binary-windows-$arch.exe"
-    $downloadUrl = "https://github.com/$Repo/releases/download/$version/$filename"
-
-    Write-Info "Downloading from: $downloadUrl"
+    # Determine install directory
+    $installDir = if ($env:JD_INSTALL_DIR) { $env:JD_INSTALL_DIR } else { $DefaultInstallDir }
+    $installPath = Join-Path $installDir "$BinaryName.exe"
 
     # Create install directory if it doesn't exist
-    if (-not (Test-Path $InstallDir)) {
-        Write-Info "Creating directory: $InstallDir"
-        New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+    if (-not (Test-Path $installDir)) {
+        Write-Info "Creating directory: $installDir"
+        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
     }
-
-    $binaryPath = Join-Path $InstallDir "$Binary.exe"
 
     # Download
+    $filename = "$BinaryName-windows-$arch.exe"
+    $downloadUrl = "https://github.com/$Repo/releases/download/$version/$filename"
+
+    Write-Info "Downloading $filename..."
+
+    $tempFile = Join-Path $env:TEMP "$BinaryName-$([guid]::NewGuid()).exe"
+
     try {
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $binaryPath -UseBasicParsing
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
     }
     catch {
-        Write-Error "Failed to download $downloadUrl : $_"
+        Write-Error-Exit "Download failed: $_"
     }
 
-    Write-Success "Installed $Binary to $binaryPath"
+    # Install
+    Write-Info "Installing to $installPath..."
+    Move-Item -Path $tempFile -Destination $installPath -Force
 
-    # Check if install directory is in PATH
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($userPath -notlike "*$InstallDir*") {
-        Write-Warning "$InstallDir is not in your PATH"
+    # Verify
+    if (Test-Path $installPath) {
+        Write-Success "Successfully installed jd $version"
+        Write-Host ""
+        & $installPath version
+        Write-Host ""
 
-        $addToPath = Read-Host "Add to PATH? (Y/n)"
-        if ($addToPath -eq "" -or $addToPath -match "^[Yy]") {
-            $newPath = "$userPath;$InstallDir"
-            [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-            $env:Path = "$env:Path;$InstallDir"
-            Write-Success "Added $InstallDir to PATH"
-            Write-Info "Please restart your terminal for the changes to take effect"
-        }
-        else {
+        # Check if install directory is in PATH
+        $pathDirs = $env:PATH -split ";"
+        if ($installDir -notin $pathDirs) {
+            Write-Warning "Note: $installDir is not in your PATH"
             Write-Host ""
-            Write-Host "To add to PATH manually, run:"
+            Write-Host "  To add it permanently, run:" -ForegroundColor Cyan
+            Write-Host "    [Environment]::SetEnvironmentVariable('PATH', `$env:PATH + ';$installDir', 'User')"
             Write-Host ""
-            Write-Host "  `$env:Path += `";$InstallDir`""
-            Write-Host ""
-            Write-Host "Or add it permanently via System Properties > Environment Variables"
-            Write-Host ""
+            Write-Host "  Or add to current session:" -ForegroundColor Cyan
+            Write-Host "    `$env:PATH += ';$installDir'"
         }
     }
-
-    # Verify installation
-    try {
-        $versionOutput = & $binaryPath --version
-        Write-Info "Version: $versionOutput"
+    else {
+        Write-Error-Exit "Installation failed"
     }
-    catch {
-        # Ignore version check failure
-    }
-
-    Write-Host ""
-    Write-Success "Installation complete!"
-    Write-Host ""
-    Write-Host "Get started with:"
-    Write-Host "  $Binary --help"
-    Write-Host ""
 }
 
 Install-Jd
