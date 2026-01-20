@@ -25,6 +25,7 @@ const (
 	TypeSkill   PackageType = "skill"
 	TypeCommand PackageType = "command"
 	TypeAgent   PackageType = "agent"
+	TypeHook    PackageType = "hook"
 )
 
 // BrowseItem represents an item found during browsing.

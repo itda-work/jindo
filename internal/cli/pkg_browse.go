@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/itda-work/itda-jindo/internal/pkg/pkgmgr"
 	"github.com/itda-work/itda-jindo/internal/pkg/repo"
+	"github.com/itda-work/itda-jindo/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -15,29 +17,37 @@ var (
 )
 
 var pkgBrowseCmd = &cobra.Command{
-	Use:   "browse <namespace>",
-	Short: "Browse packages in a repository",
-	Long: `Browse available packages (skills, commands, agents) in a registered repository.
+	Use:   "browse [namespace]",
+	Short: "Browse packages in repositories",
+	Long: `Browse available packages (skills, commands, agents, hooks) in registered repositories.
+
+Without arguments, opens an interactive TUI to browse all registered repositories.
+With a namespace argument, lists packages in that specific repository.
 
 Use --type to filter by package type.
 
 Examples:
-  jd pkg browse affa-ever
-  jd pkg browse affa-ever --type skills
-  jd pkg browse affa-ever --type commands`,
-	Args: cobra.ExactArgs(1),
+  jd pkg browse                     # Interactive TUI
+  jd pkg browse affa-ever           # List packages in affa-ever
+  jd pkg browse affa-ever --type skills`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runPkgBrowse,
 }
 
 func init() {
 	pkgCmd.AddCommand(pkgBrowseCmd)
-	pkgBrowseCmd.Flags().StringVarP(&pkgBrowseType, "type", "t", "", "Filter by type (skills, commands, agents)")
+	pkgBrowseCmd.Flags().StringVarP(&pkgBrowseType, "type", "t", "", "Filter by type (skills, commands, agents, hooks)")
 	pkgBrowseCmd.Flags().BoolVar(&pkgBrowseJSON, "json", false, "Output in JSON format")
 }
 
 func runPkgBrowse(_ *cobra.Command, args []string) error {
-	namespace := args[0]
+	// If no namespace provided, launch TUI
+	if len(args) == 0 {
+		manager := pkgmgr.NewManager("~/.itda-jindo")
+		return tui.Run(manager)
+	}
 
+	namespace := args[0]
 	store := repo.NewStore("~/.itda-jindo")
 
 	// Validate type filter
@@ -51,8 +61,10 @@ func runPkgBrowse(_ *cobra.Command, args []string) error {
 		typeFilter = repo.TypeCommand
 	case "agents", "agent":
 		typeFilter = repo.TypeAgent
+	case "hooks", "hook":
+		typeFilter = repo.TypeHook
 	default:
-		return fmt.Errorf("invalid type: %s (use: skills, commands, agents)", pkgBrowseType)
+		return fmt.Errorf("invalid type: %s (use: skills, commands, agents, hooks)", pkgBrowseType)
 	}
 
 	// Get repository info
@@ -86,6 +98,7 @@ func runPkgBrowse(_ *cobra.Command, args []string) error {
 	skills := make([]repo.BrowseItem, 0)
 	commands := make([]repo.BrowseItem, 0)
 	agents := make([]repo.BrowseItem, 0)
+	hooks := make([]repo.BrowseItem, 0)
 
 	for _, item := range items {
 		switch item.Type {
@@ -95,6 +108,8 @@ func runPkgBrowse(_ *cobra.Command, args []string) error {
 			commands = append(commands, item)
 		case repo.TypeAgent:
 			agents = append(agents, item)
+		case repo.TypeHook:
+			hooks = append(hooks, item)
 		}
 	}
 
@@ -113,6 +128,12 @@ func runPkgBrowse(_ *cobra.Command, args []string) error {
 	if len(agents) > 0 {
 		fmt.Println("Agents:")
 		printBrowseItems(agents, namespace)
+		fmt.Println()
+	}
+
+	if len(hooks) > 0 {
+		fmt.Println("Hooks:")
+		printBrowseItems(hooks, namespace)
 		fmt.Println()
 	}
 

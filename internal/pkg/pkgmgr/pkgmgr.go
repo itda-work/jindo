@@ -161,6 +161,8 @@ func determinePackageType(path string) repo.PackageType {
 		return repo.TypeCommand
 	case "agents":
 		return repo.TypeAgent
+	case "hooks":
+		return repo.TypeHook
 	default:
 		return ""
 	}
@@ -181,6 +183,9 @@ func extractPackageName(path string, pkgType repo.PackageType) string {
 		// commands/<name>.md or agents/<name>.md
 		name := parts[1]
 		return strings.TrimSuffix(name, ".md")
+	case repo.TypeHook:
+		// hooks/<name>
+		return parts[1]
 	default:
 		return ""
 	}
@@ -250,6 +255,8 @@ func (m *Manager) Install(specStr string) (*InstalledPackage, error) {
 		files, err = m.installCommand(repoLocalPath, spec.Path, namespacedName, baseDir)
 	case repo.TypeAgent:
 		files, err = m.installAgent(repoLocalPath, spec.Path, namespacedName, baseDir)
+	case repo.TypeHook:
+		files, err = m.installHook(repoLocalPath, spec.Path, namespacedName, baseDir)
 	}
 
 	if err != nil {
@@ -379,6 +386,40 @@ func (m *Manager) installAgent(repoLocalPath, path, namespacedName, baseDir stri
 	destPath := filepath.Join(agentsDir, namespacedName+".md")
 	if err := copyFile(srcPath, destPath); err != nil {
 		return nil, fmt.Errorf("copy agent file: %w", err)
+	}
+
+	return []InstalledFile{{
+		Source: path,
+		Target: destPath,
+		SHA:    "",
+	}}, nil
+}
+
+// installHook installs a hook package from local clone.
+func (m *Manager) installHook(repoLocalPath, path, namespacedName, baseDir string) ([]InstalledFile, error) {
+	srcPath := filepath.Join(repoLocalPath, path)
+	hooksDir := filepath.Join(baseDir, "hooks")
+
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return nil, fmt.Errorf("create hooks directory: %w", err)
+	}
+
+	// Get original filename (including extension)
+	originalName := filepath.Base(path)
+	// Prepend namespace
+	destName := namespacedName
+	if ext := filepath.Ext(originalName); ext != "" {
+		destName += ext
+	}
+
+	destPath := filepath.Join(hooksDir, destName)
+	if err := copyFile(srcPath, destPath); err != nil {
+		return nil, fmt.Errorf("copy hook file: %w", err)
+	}
+
+	// Make hook executable
+	if err := os.Chmod(destPath, 0755); err != nil {
+		return nil, fmt.Errorf("make hook executable: %w", err)
 	}
 
 	return []InstalledFile{{

@@ -376,6 +376,12 @@ func (s *Store) Browse(namespace string, typeFilter PackageType) ([]BrowseItem, 
 		items = append(items, agentItems...)
 	}
 
+	// Scan hooks directory
+	if typeFilter == "" || typeFilter == TypeHook {
+		hookItems, _ := s.scanHooks(localPath)
+		items = append(items, hookItems...)
+	}
+
 	return items, nil
 }
 
@@ -460,6 +466,31 @@ func (s *Store) scanAgents(repoPath string) ([]BrowseItem, error) {
 			Name: name,
 			Path: "agents/" + entry.Name(),
 			Type: TypeAgent,
+		})
+	}
+
+	return items, nil
+}
+
+// scanHooks scans the hooks directory for hook packages.
+func (s *Store) scanHooks(repoPath string) ([]BrowseItem, error) {
+	hooksDir := filepath.Join(repoPath, "hooks")
+	entries, err := os.ReadDir(hooksDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []BrowseItem
+	for _, entry := range entries {
+		// Hooks can be shell scripts or other executable files
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		items = append(items, BrowseItem{
+			Name: name,
+			Path: "hooks/" + name,
+			Type: TypeHook,
 		})
 	}
 
