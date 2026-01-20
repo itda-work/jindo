@@ -98,21 +98,78 @@ func NewStore(baseDir string) *Store {
 	return &Store{baseDir: baseDir}
 }
 
-// List returns all commands in the store
-func (s *Store) List() ([]*Command, error) {
-	var commands []*Command
-
-	// Expand ~ to home directory
+// expandDir expands ~ to home directory
+func (s *Store) expandDir() (string, error) {
 	dir := s.baseDir
 	if strings.HasPrefix(dir, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		dir = filepath.Join(home, dir[2:])
 	}
+	return dir, nil
+}
 
-	err := s.walkDir(dir, "", &commands)
+// Get retrieves a specific command by name (supports subdir:name format)
+func (s *Store) Get(name string) (*Command, error) {
+	dir, err := s.expandDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert name:subname format to path
+	parts := strings.Split(name, ":")
+	pathParts := append(parts[:len(parts)-1], parts[len(parts)-1]+".md")
+	cmdFile := filepath.Join(dir, filepath.Join(pathParts...))
+
+	if _, err := os.Stat(cmdFile); os.IsNotExist(err) {
+		return nil, os.ErrNotExist
+	}
+
+	cmd, err := ParseCommandFile(cmdFile)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Name = name
+	return cmd, nil
+}
+
+// GetContent retrieves the full content of a command file
+func (s *Store) GetContent(name string) (string, error) {
+	dir, err := s.expandDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Convert name:subname format to path
+	parts := strings.Split(name, ":")
+	pathParts := append(parts[:len(parts)-1], parts[len(parts)-1]+".md")
+	cmdFile := filepath.Join(dir, filepath.Join(pathParts...))
+
+	if _, err := os.Stat(cmdFile); os.IsNotExist(err) {
+		return "", os.ErrNotExist
+	}
+
+	content, err := os.ReadFile(cmdFile)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
+}
+
+// List returns all commands in the store
+func (s *Store) List() ([]*Command, error) {
+	var commands []*Command
+
+	dir, err := s.expandDir()
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.walkDir(dir, "", &commands)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return commands, nil

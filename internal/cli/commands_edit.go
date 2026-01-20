@@ -1,0 +1,102 @@
+package cli
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+
+	"github.com/itda-work/itda-jindo/internal/command"
+	"github.com/spf13/cobra"
+)
+
+var commandsEditEditor bool
+
+var commandsEditCmd = &cobra.Command{
+	Use:   "edit <command-name>",
+	Short: "Edit an existing command",
+	Long: `Edit an existing command in ~/.claude/commands/ directory.
+
+By default, uses Claude CLI to interactively edit the command content.
+Use --editor to open the command file directly in your editor.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runCommandsEdit,
+}
+
+func init() {
+	commandsCmd.AddCommand(commandsEditCmd)
+	commandsEditCmd.Flags().BoolVarP(&commandsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
+}
+
+func runCommandsEdit(_ *cobra.Command, args []string) error {
+	name := args[0]
+	store := command.NewStore("~/.claude/commands")
+
+	// Get command to verify it exists and get its path
+	cmd, err := store.Get(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("command not found: %s", name)
+		}
+		return fmt.Errorf("failed to get command: %w", err)
+	}
+
+	// If --editor flag, just open in editor
+	if commandsEditEditor {
+		return openEditor(cmd.Path)
+	}
+
+	// Get current content for context
+	content, err := store.GetContent(name)
+	if err != nil {
+		return fmt.Errorf("failed to read command content: %w", err)
+	}
+
+	// Use Claude CLI to edit
+	newContent, err := editCommandWithClaude(name, content)
+	if err != nil {
+		return fmt.Errorf("failed to edit command with Claude: %w", err)
+	}
+
+	// Write updated content
+	if err := os.WriteFile(cmd.Path, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("failed to write command file: %w", err)
+	}
+
+	fmt.Printf("Updated command: %s\n", cmd.Path)
+	return nil
+}
+
+func editCommandWithClaude(name, currentContent string) (string, error) {
+	systemPrompt := fmt.Sprintf(`You are helping edit a Claude Code slash command named "%s".
+
+Current command content:
+---
+%s
+---
+
+Help the user modify this command. When they describe the changes they want:
+1. Understand what they want to change
+2. Generate the complete updated command file content
+
+The output must be a valid command .md file with:
+- YAML frontmatter (description)
+- Markdown content
+
+Ask the user what changes they want to make to this command.`, name, currentContent)
+
+	cmd := exec.Command("claude",
+		"--print",
+		"--system-prompt", systemPrompt,
+		fmt.Sprintf("I want to edit the '/%s' command. Here's the current content. What would you like to change?", name),
+	)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return string(output), nil
+}

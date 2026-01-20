@@ -87,18 +87,72 @@ func NewStore(baseDir string) *Store {
 	return &Store{baseDir: baseDir}
 }
 
-// List returns all agents in the store
-func (s *Store) List() ([]*Agent, error) {
-	var agents []*Agent
-
-	// Expand ~ to home directory
+// expandDir expands ~ to home directory
+func (s *Store) expandDir() (string, error) {
 	dir := s.baseDir
 	if strings.HasPrefix(dir, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		dir = filepath.Join(home, dir[2:])
+	}
+	return dir, nil
+}
+
+// Get retrieves a specific agent by name
+func (s *Store) Get(name string) (*Agent, error) {
+	dir, err := s.expandDir()
+	if err != nil {
+		return nil, err
+	}
+
+	agentFile := filepath.Join(dir, name+".md")
+
+	if _, err := os.Stat(agentFile); os.IsNotExist(err) {
+		return nil, os.ErrNotExist
+	}
+
+	agent, err := ParseAgentFile(agentFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if agent.Name == "" {
+		agent.Name = name
+	}
+
+	return agent, nil
+}
+
+// GetContent retrieves the full content of an agent file
+func (s *Store) GetContent(name string) (string, error) {
+	dir, err := s.expandDir()
+	if err != nil {
+		return "", err
+	}
+
+	agentFile := filepath.Join(dir, name+".md")
+
+	if _, err := os.Stat(agentFile); os.IsNotExist(err) {
+		return "", os.ErrNotExist
+	}
+
+	content, err := os.ReadFile(agentFile)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
+}
+
+// List returns all agents in the store
+func (s *Store) List() ([]*Agent, error) {
+	var agents []*Agent
+
+	dir, err := s.expandDir()
+	if err != nil {
+		return nil, err
 	}
 
 	entries, err := os.ReadDir(dir)
