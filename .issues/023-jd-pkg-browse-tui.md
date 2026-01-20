@@ -38,7 +38,7 @@ closed_at: '2026-01-20T16:22:05Z'
 
 ## Non-goals
 
-- 패키지 상세 내용 미리보기 (향후 구현)
+- ~~패키지 상세 내용 미리보기 (향후 구현)~~ → 구현 완료
 - 설치된 패키지 삭제 기능 (기존 uninstall 명령 사용)
 - 저장소 추가/삭제 (기존 repo 명령 사용)
 
@@ -71,3 +71,49 @@ closed_at: '2026-01-20T16:22:05Z'
 ---
 
 Clarified on: 2026-01-21
+
+## 작업 내역
+
+### 1차 구현 (3a8a021)
+
+- `internal/tui/browse.go`: Bubble Tea 기반 TUI 모델 구현
+- Skills, Commands, Agents, Hooks 4개 탭 네비게이션
+- 설치 상태 표시 (`[✓]` installed, `[*]` selected, `[ ]` available)
+- 다중 선택 및 일괄 설치 기능
+- hook 패키지 타입 지원 추가 (`repo/types.go`, `repo/repo.go`, `pkgmgr/pkgmgr.go`)
+- `jd pkg browse` 인자 없이 실행 시 TUI 모드 자동 실행
+
+### 2차 구현 - 미리보기 패널 (873196f)
+
+- 30:70 비율의 좌우 분할 레이아웃 적용
+- 왼쪽 패널: 패키지 목록
+- 오른쪽 패널: 선택된 패키지의 파일 내용 미리보기 (최대 30줄)
+- 커서 이동 시 실시간 미리보기 업데이트
+- skill의 경우 `SKILL.md` 파일 로드, command/agent는 해당 `.md` 파일 로드
+
+### 키바인딩
+
+| 키                          | 기능             |
+| --------------------------- | ---------------- |
+| `↑/↓` 또는 `j/k`            | 목록 탐색        |
+| `←/→` 또는 `h/l` 또는 `Tab` | 탭 전환          |
+| `Space`                     | 항목 선택/해제   |
+| `a`                         | 전체 선택/해제   |
+| `Enter`                     | 선택한 항목 설치 |
+| `q` 또는 `Esc`              | 종료             |
+
+### 파일 구조
+
+```text
+internal/
+├── tui/
+│   └── browse.go          # TUI 모델, 뷰, 키바인딩
+├── cli/
+│   └── pkg_browse.go      # TUI 진입점 (인자 없으면 TUI 실행)
+└── pkg/
+    ├── repo/
+    │   ├── types.go       # TypeHook 추가
+    │   └── repo.go        # scanHooks() 추가
+    └── pkgmgr/
+        └── pkgmgr.go      # installHook() 추가
+```
