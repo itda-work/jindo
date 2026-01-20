@@ -1,5 +1,9 @@
 # jd - Claude Code Configuration Manager
 
+<p align="center">
+  <img src="assets/logo.png" alt="jd logo" width="200">
+</p>
+
 A CLI tool for managing Claude Code configurations including skills, commands, and agents.
 
 ## Features

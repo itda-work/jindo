@@ -1,12 +1,12 @@
 ---
 number: 17
 title: 로고 아이콘 설정 및 favicon 준비
-state: open
+state: wip
 labels:
   - enhancement
 assignees: []
 created_at: '2026-01-20T11:09:34Z'
-updated_at: '2026-01-20T11:09:34Z'
+updated_at: '2026-01-20T14:12:01Z'
 ---
 
 ## 개요
