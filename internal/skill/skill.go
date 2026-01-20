@@ -1,10 +1,11 @@
 package skill
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Skill represents a Claude Code skill
@@ -15,70 +16,103 @@ type Skill struct {
 	Path         string   `json:"path"`
 }
 
+// skillFrontmatter represents the YAML frontmatter structure
+type skillFrontmatter struct {
+	Name         string `yaml:"name"`
+	Description  string `yaml:"description"`
+	AllowedTools string `yaml:"allowed-tools"`
+}
+
+// extractFrontmatter extracts YAML frontmatter from markdown content
+func extractFrontmatter(content string) (string, bool) {
+	lines := strings.Split(content, "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return "", false
+	}
+
+	var frontmatterLines []string
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			return strings.Join(frontmatterLines, "\n"), true
+		}
+		frontmatterLines = append(frontmatterLines, lines[i])
+	}
+
+	return "", false
+}
+
+// parseSimpleFrontmatter parses frontmatter using simple line-based approach
+// This is a fallback for when YAML parsing fails due to special characters
+func parseSimpleFrontmatter(frontmatter string) map[string]string {
+	result := make(map[string]string)
+	lines := strings.Split(frontmatter, "\n")
+
+	for _, line := range lines {
+		// Find first colon
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:idx])
+		value := strings.TrimSpace(line[idx+1:])
+
+		// Only capture simple keys we care about
+		switch key {
+		case "name", "description", "allowed-tools":
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
 // ParseSkillFile parses a SKILL.md or skill.md file and returns a Skill
-func ParseSkillFile(path string) (result *Skill, err error) {
-	file, err := os.Open(path)
+func ParseSkillFile(path string) (*Skill, error) {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if cerr := file.Close(); cerr != nil && err == nil {
-			err = cerr
-		}
-	}()
 
 	skill := &Skill{
 		Path: path,
 	}
 
-	scanner := bufio.NewScanner(file)
-	inFrontmatter := false
-	lineCount := 0
+	frontmatter, found := extractFrontmatter(string(content))
+	if !found || frontmatter == "" {
+		return skill, nil
+	}
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		lineCount++
-
-		// Check for frontmatter delimiter
-		if strings.TrimSpace(line) == "---" {
-			if !inFrontmatter {
-				inFrontmatter = true
-				continue
-			} else {
-				// End of frontmatter
-				break
-			}
-		}
-
-		if !inFrontmatter {
-			continue
-		}
-
-		// Parse YAML-like frontmatter (simple key: value)
-		if idx := strings.Index(line, ":"); idx > 0 {
-			key := strings.TrimSpace(line[:idx])
-			value := strings.TrimSpace(line[idx+1:])
-
-			switch key {
-			case "name":
-				skill.Name = value
-			case "description":
-				skill.Description = value
-			case "allowed-tools":
-				// Parse comma-separated tools
-				tools := strings.Split(value, ",")
-				for _, tool := range tools {
-					tool = strings.TrimSpace(tool)
-					if tool != "" {
-						skill.AllowedTools = append(skill.AllowedTools, tool)
-					}
+	var fm skillFrontmatter
+	if err := yaml.Unmarshal([]byte(frontmatter), &fm); err != nil {
+		// If YAML parsing fails, fall back to simple parsing
+		simple := parseSimpleFrontmatter(frontmatter)
+		skill.Name = simple["name"]
+		skill.Description = simple["description"]
+		if allowedTools := simple["allowed-tools"]; allowedTools != "" {
+			tools := strings.Split(allowedTools, ",")
+			for _, tool := range tools {
+				tool = strings.TrimSpace(tool)
+				if tool != "" {
+					skill.AllowedTools = append(skill.AllowedTools, tool)
 				}
 			}
 		}
+		return skill, nil
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	skill.Name = fm.Name
+	skill.Description = fm.Description
+
+	// Parse comma-separated tools
+	if fm.AllowedTools != "" {
+		tools := strings.Split(fm.AllowedTools, ",")
+		for _, tool := range tools {
+			tool = strings.TrimSpace(tool)
+			if tool != "" {
+				skill.AllowedTools = append(skill.AllowedTools, tool)
+			}
+		}
 	}
 
 	return skill, nil

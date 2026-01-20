@@ -1,10 +1,11 @@
 package agent
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Agent represents a Claude Code agent
@@ -15,63 +16,82 @@ type Agent struct {
 	Path        string `json:"path"`
 }
 
+// agentFrontmatter represents the YAML frontmatter structure
+type agentFrontmatter struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Model       string `yaml:"model"`
+}
+
+// extractFrontmatter extracts YAML frontmatter from markdown content
+func extractFrontmatter(content string) (string, bool) {
+	lines := strings.Split(content, "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return "", false
+	}
+
+	var frontmatterLines []string
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			return strings.Join(frontmatterLines, "\n"), true
+		}
+		frontmatterLines = append(frontmatterLines, lines[i])
+	}
+
+	return "", false
+}
+
+// parseSimpleFrontmatter parses frontmatter using simple line-based approach
+// This is a fallback for when YAML parsing fails due to special characters
+func parseSimpleFrontmatter(frontmatter string) map[string]string {
+	result := make(map[string]string)
+	lines := strings.Split(frontmatter, "\n")
+
+	for _, line := range lines {
+		// Find first colon
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:idx])
+		value := strings.TrimSpace(line[idx+1:])
+
+		// Only capture simple keys we care about
+		switch key {
+		case "name", "description", "model":
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
 // ParseAgentFile parses an agent .md file and returns an Agent
-func ParseAgentFile(path string) (result *Agent, err error) {
-	file, err := os.Open(path)
+func ParseAgentFile(path string) (*Agent, error) {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if cerr := file.Close(); cerr != nil && err == nil {
-			err = cerr
-		}
-	}()
 
 	agent := &Agent{
 		Path: path,
 	}
 
-	scanner := bufio.NewScanner(file)
-	inFrontmatter := false
-	lineCount := 0
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		lineCount++
-
-		// Check for frontmatter delimiter
-		if strings.TrimSpace(line) == "---" {
-			if !inFrontmatter && lineCount == 1 {
-				inFrontmatter = true
-				continue
-			} else if inFrontmatter {
-				// End of frontmatter
-				break
-			}
+	frontmatter, found := extractFrontmatter(string(content))
+	if found && frontmatter != "" {
+		var fm agentFrontmatter
+		if err := yaml.Unmarshal([]byte(frontmatter), &fm); err != nil {
+			// If YAML parsing fails, fall back to simple parsing
+			simple := parseSimpleFrontmatter(frontmatter)
+			agent.Name = simple["name"]
+			agent.Description = simple["description"]
+			agent.Model = simple["model"]
+			return agent, nil
 		}
-
-		if !inFrontmatter {
-			continue
-		}
-
-		// Parse YAML-like frontmatter (simple key: value)
-		if idx := strings.Index(line, ":"); idx > 0 {
-			key := strings.TrimSpace(line[:idx])
-			value := strings.TrimSpace(line[idx+1:])
-
-			switch key {
-			case "name":
-				agent.Name = value
-			case "description":
-				agent.Description = value
-			case "model":
-				agent.Model = value
-			}
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
+		agent.Name = fm.Name
+		agent.Description = fm.Description
+		agent.Model = fm.Model
 	}
 
 	return agent, nil

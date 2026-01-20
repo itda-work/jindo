@@ -1,10 +1,11 @@
 package command
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Command represents a Claude Code command
@@ -14,75 +15,94 @@ type Command struct {
 	Path        string `json:"path"`
 }
 
+// commandFrontmatter represents the YAML frontmatter structure
+type commandFrontmatter struct {
+	Description string `yaml:"description"`
+}
+
+// extractFrontmatter extracts YAML frontmatter from markdown content
+func extractFrontmatter(content string) (string, bool) {
+	lines := strings.Split(content, "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return "", false
+	}
+
+	var frontmatterLines []string
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			return strings.Join(frontmatterLines, "\n"), true
+		}
+		frontmatterLines = append(frontmatterLines, lines[i])
+	}
+
+	return "", false
+}
+
+// parseSimpleFrontmatter parses frontmatter using simple line-based approach
+// This is a fallback for when YAML parsing fails due to special characters
+func parseSimpleFrontmatter(frontmatter string) map[string]string {
+	result := make(map[string]string)
+	lines := strings.Split(frontmatter, "\n")
+
+	for _, line := range lines {
+		// Find first colon
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:idx])
+		value := strings.TrimSpace(line[idx+1:])
+
+		// Only capture simple keys we care about
+		if key == "description" {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
+// findFirstHeading finds the first H1 heading in markdown content
+func findFirstHeading(content string) string {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "# ") {
+			return strings.TrimPrefix(line, "# ")
+		}
+	}
+	return ""
+}
+
 // ParseCommandFile parses a command .md file and returns a Command
-func ParseCommandFile(path string) (result *Command, err error) {
-	file, err := os.Open(path)
+func ParseCommandFile(path string) (*Command, error) {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if cerr := file.Close(); cerr != nil && err == nil {
-			err = cerr
-		}
-	}()
 
 	cmd := &Command{
 		Path: path,
 	}
 
-	scanner := bufio.NewScanner(file)
-	inFrontmatter := false
-	frontmatterFound := false
-	lineCount := 0
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		lineCount++
-
-		// Check for frontmatter delimiter
-		if strings.TrimSpace(line) == "---" {
-			if !inFrontmatter && lineCount == 1 {
-				inFrontmatter = true
-				frontmatterFound = true
-				continue
-			} else if inFrontmatter {
-				// End of frontmatter
-				inFrontmatter = false
-				continue
-			}
-		}
-
-		if inFrontmatter {
-			// Parse YAML-like frontmatter (simple key: value)
-			if idx := strings.Index(line, ":"); idx > 0 {
-				key := strings.TrimSpace(line[:idx])
-				value := strings.TrimSpace(line[idx+1:])
-
-				switch key {
-				case "description":
-					cmd.Description = value
-				}
-			}
-			continue
-		}
-
-		// If no frontmatter, try to get description from first heading
-		if !frontmatterFound && strings.HasPrefix(line, "# ") {
-			// Use first heading as description if no frontmatter description
+	frontmatter, found := extractFrontmatter(string(content))
+	if found && frontmatter != "" {
+		var fm commandFrontmatter
+		if err := yaml.Unmarshal([]byte(frontmatter), &fm); err != nil {
+			// If YAML parsing fails, fall back to simple parsing
+			simple := parseSimpleFrontmatter(frontmatter)
+			cmd.Description = simple["description"]
 			if cmd.Description == "" {
-				cmd.Description = strings.TrimPrefix(line, "# ")
+				cmd.Description = findFirstHeading(string(content))
 			}
-			break
+			return cmd, nil
 		}
-
-		// If we have frontmatter but passed it, stop reading
-		if frontmatterFound && !inFrontmatter {
-			break
-		}
+		cmd.Description = fm.Description
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	// If no description from frontmatter, try first heading
+	if cmd.Description == "" {
+		cmd.Description = findFirstHeading(string(content))
 	}
 
 	return cmd, nil
