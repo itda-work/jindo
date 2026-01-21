@@ -91,22 +91,14 @@ func printSkillsJSON(skills []*skill.Skill) error {
 func printSkillsTable(skills []*skill.Skill) {
 	// Calculate column widths
 	idWidth := len("ID")
-	descWidth := len("DESCRIPTION")
 	toolsWidth := len("ALLOWED-TOOLS")
+	descWidth := 50 // Fixed description width for wrapping
 
 	for _, s := range skills {
-		// Use directory name as skill ID (used in commands)
+		// Use directory name as skill ID (used in commands) - no truncation
 		skillID := filepath.Base(filepath.Dir(s.Path))
 		if len(skillID) > idWidth {
 			idWidth = len(skillID)
-		}
-		// Truncate description for display
-		desc := s.Description
-		if len(desc) > 50 {
-			desc = desc[:47] + "..."
-		}
-		if len(desc) > descWidth {
-			descWidth = len(desc)
 		}
 		tools := strings.Join(s.AllowedTools, ", ")
 		if len(tools) > toolsWidth {
@@ -114,13 +106,7 @@ func printSkillsTable(skills []*skill.Skill) {
 		}
 	}
 
-	// Cap widths
-	if idWidth > 30 {
-		idWidth = 30
-	}
-	if descWidth > 50 {
-		descWidth = 50
-	}
+	// Cap tools width only
 	if toolsWidth > 30 {
 		toolsWidth = 30
 	}
@@ -137,27 +123,59 @@ func printSkillsTable(skills []*skill.Skill) {
 
 	// Print rows
 	for _, s := range skills {
-		// Use directory name as skill ID
+		// Use directory name as skill ID - full, no truncation
 		skillID := filepath.Base(filepath.Dir(s.Path))
-		if len(skillID) > idWidth {
-			skillID = skillID[:idWidth-3] + "..."
-		}
-
-		desc := s.Description
-		if len(desc) > descWidth {
-			desc = desc[:descWidth-3] + "..."
-		}
 
 		tools := strings.Join(s.AllowedTools, ", ")
 		if len(tools) > toolsWidth {
 			tools = tools[:toolsWidth-3] + "..."
 		}
 
+		// Wrap description into multiple lines
+		descLines := wrapText(s.Description, descWidth)
+		if len(descLines) == 0 {
+			descLines = []string{""}
+		}
+
+		// Print first line with ID and tools
 		fmt.Printf("%-*s  %-*s  %-*s\n",
 			idWidth, skillID,
-			descWidth, desc,
+			descWidth, descLines[0],
 			toolsWidth, tools)
+
+		// Print remaining description lines (if any)
+		for i := 1; i < len(descLines); i++ {
+			fmt.Printf("%-*s  %-*s\n",
+				idWidth, "",
+				descWidth, descLines[i])
+		}
 	}
 
 	fmt.Printf("\nTotal: %d skills\n", len(skills))
+}
+
+// wrapText wraps text to specified width, breaking at word boundaries
+func wrapText(text string, width int) []string {
+	if text == "" {
+		return nil
+	}
+
+	var lines []string
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return nil
+	}
+
+	currentLine := words[0]
+	for _, word := range words[1:] {
+		if len(currentLine)+1+len(word) <= width {
+			currentLine += " " + word
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+	lines = append(lines, currentLine)
+
+	return lines
 }
