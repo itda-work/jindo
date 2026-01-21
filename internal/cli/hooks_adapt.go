@@ -136,14 +136,15 @@ func runHooksAdapt(cmd *cobra.Command, args []string) error {
 	fmt.Println("   - Type 'exit' or Ctrl+C to finish")
 	fmt.Println()
 
-	// Initial prompt to make Claude start the conversation
+	// Initial prompt to make Claude start the conversation (passed as positional argument for interactive mode)
 	initialPrompt := fmt.Sprintf("I want to customize the '%s' hook. Please start by asking me about my specific needs and how I'd like to adapt this hook to my workflow.", hookName)
 
 	// Run claude command with the system prompt and initial message
+	// Note: positional argument (not -p) keeps interactive mode
 	claudeCmd := exec.Command("claude",
 		"--system-prompt", systemPrompt.String(),
 		"--allowedTools", "Edit,Read,Write,Bash",
-		"-p", initialPrompt,
+		initialPrompt,
 	)
 	claudeCmd.Stdin = os.Stdin
 	claudeCmd.Stdout = os.Stdout
