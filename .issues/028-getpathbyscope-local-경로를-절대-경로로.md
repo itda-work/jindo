@@ -1,12 +1,13 @@
 ---
 number: 28
 title: GetPathByScope Local 경로를 절대 경로로 반환
-state: open
+state: done
 labels:
   - bug
 assignees: []
 created_at: '2026-01-21T04:46:02Z'
-updated_at: '2026-01-21T04:46:02Z'
+updated_at: '2026-01-21T06:21:08Z'
+closed_at: '2026-01-21T06:21:08Z'
 ---
 
 ## 문제

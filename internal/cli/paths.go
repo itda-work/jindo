@@ -74,7 +74,11 @@ func LocalClaudeDirExists() bool {
 func GetPathByScope(scope PathScope, subdir string) string {
 	switch scope {
 	case ScopeLocal:
-		return filepath.Join(localClaudeDir, subdir)
+		cwd, err := os.Getwd()
+		if err != nil {
+			return GetGlobalPath(subdir) // fallback to global
+		}
+		return filepath.Join(cwd, localClaudeDir, subdir)
 	default:
 		return GetGlobalPath(subdir)
 	}
@@ -84,7 +88,11 @@ func GetPathByScope(scope PathScope, subdir string) string {
 func GetSettingsPathByScope(scope PathScope) string {
 	switch scope {
 	case ScopeLocal:
-		return filepath.Join(localClaudeDir, "settings.json")
+		cwd, err := os.Getwd()
+		if err != nil {
+			return filepath.Join(globalClaudeDir, "settings.json") // fallback to global
+		}
+		return filepath.Join(cwd, localClaudeDir, "settings.json")
 	default:
 		return filepath.Join(globalClaudeDir, "settings.json")
 	}
