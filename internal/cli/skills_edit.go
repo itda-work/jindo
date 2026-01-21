@@ -24,8 +24,9 @@ var skillsEditCmd = &cobra.Command{
 By default, uses Claude CLI to interactively edit the skill content.
 Use --editor to open the skill file directly in your editor.
 Use --local to edit from the current directory's .claude/skills/.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSkillsEdit,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runSkillsEdit,
+	ValidArgsFunction: skillNameCompletion,
 }
 
 func init() {

@@ -24,8 +24,9 @@ var agentsEditCmd = &cobra.Command{
 By default, uses Claude CLI to interactively edit the agent content.
 Use --editor to open the agent file directly in your editor.
 Use --local to edit from the current directory's .claude/agents/.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runAgentsEdit,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runAgentsEdit,
+	ValidArgsFunction: agentNameCompletion,
 }
 
 func init() {

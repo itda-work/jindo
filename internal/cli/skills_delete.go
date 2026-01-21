@@ -26,8 +26,9 @@ var skillsDeleteCmd = &cobra.Command{
 This will delete the entire skill folder including all files.
 Use --force to skip the confirmation prompt.
 Use --local to delete from the current directory's .claude/skills/.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSkillsDelete,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runSkillsDelete,
+	ValidArgsFunction: skillNameCompletion,
 }
 
 func init() {

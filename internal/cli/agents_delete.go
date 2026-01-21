@@ -25,8 +25,9 @@ var agentsDeleteCmd = &cobra.Command{
 This will delete the agent file.
 Use --force to skip the confirmation prompt.
 Use --local to delete from the current directory's .claude/agents/.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runAgentsDelete,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runAgentsDelete,
+	ValidArgsFunction: agentNameCompletion,
 }
 
 func init() {

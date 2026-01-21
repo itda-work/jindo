@@ -28,8 +28,9 @@ Examples:
   jd hooks delete PreToolUse-Bash-0
   jd hooks delete PreToolUse-Bash-0 -f
   jd hooks delete --local PreToolUse-Bash-0`,
-	Args: cobra.ExactArgs(1),
-	RunE: runHooksDelete,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runHooksDelete,
+	ValidArgsFunction: hookNameCompletion,
 }
 
 func init() {

@@ -31,8 +31,9 @@ Examples:
   jd hooks edit PreToolUse-Bash-0 -m "Bash|Write"
   jd hooks edit PreToolUse-Bash-0 -c "new-command.sh"
   jd hooks edit --local PreToolUse-Bash-0`,
-	Args: cobra.ExactArgs(1),
-	RunE: runHooksEdit,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runHooksEdit,
+	ValidArgsFunction: hookNameCompletion,
 }
 
 func init() {

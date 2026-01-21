@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/itda-work/jindo/internal/skill"
@@ -22,8 +23,9 @@ var skillsShowCmd = &cobra.Command{
 	Long: `Show the full content of a specific skill from ~/.claude/skills/ (global) or .claude/skills/ (local) directory.
 
 Use --local to show from the current directory's .claude/skills/.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSkillsShow,
+	Args:              cobra.ExactArgs(1),
+	RunE:              runSkillsShow,
+	ValidArgsFunction: skillNameCompletion,
 }
 
 func init() {
@@ -80,4 +82,36 @@ func showSkillFull(store *skill.Store, name string) error {
 
 	fmt.Print(content)
 	return nil
+}
+
+// skillNameCompletion provides completion for skill names
+func skillNameCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) != 0 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	// Check if --local flag is set
+	scope := ScopeGlobal
+	if local, _ := cmd.Flags().GetBool("local"); local {
+		scope = ScopeLocal
+	}
+
+	store := skill.NewStore(GetPathByScope(scope, "skills"))
+	skills, err := store.List()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	var names []string
+	for _, s := range skills {
+		// Use directory name (the actual ID used for lookup), not frontmatter name
+		dirName := filepath.Base(filepath.Dir(s.Path))
+		if s.Description != "" {
+			names = append(names, fmt.Sprintf("%s\t%s", dirName, s.Description))
+		} else {
+			names = append(names, dirName)
+		}
+	}
+
+	return names, cobra.ShellCompDirectiveNoFileComp
 }
