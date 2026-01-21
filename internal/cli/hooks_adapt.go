@@ -171,7 +171,12 @@ func runHooksAdapt(cmd *cobra.Command, args []string) error {
 
 	// Check if hook changed
 	if newHook.Matcher == h.Matcher && equalStringSlices(newHook.Commands, h.Commands) {
-		fmt.Println("\n📝 No changes made to the hook")
+		// Remove the backup since no changes were made
+		if err := historyMgr.DeleteVersion(version.Number); err == nil {
+			fmt.Println("\n📝 No changes made to the hook (backup removed)")
+		} else {
+			fmt.Println("\n📝 No changes made to the hook")
+		}
 		return nil
 	}
 

@@ -229,6 +229,39 @@ func (h *HistoryManager) HasHistory() bool {
 	return len(manifest.Versions) > 0
 }
 
+// DeleteVersion removes a specific version from history
+func (h *HistoryManager) DeleteVersion(versionNum int) error {
+	manifest, err := h.loadManifest()
+	if err != nil {
+		return err
+	}
+
+	// Find and remove the version
+	var newVersions []Version
+	var filename string
+	for _, v := range manifest.Versions {
+		if v.Number == versionNum {
+			filename = v.Filename
+		} else {
+			newVersions = append(newVersions, v)
+		}
+	}
+
+	if filename == "" {
+		return fmt.Errorf("version %d not found", versionNum)
+	}
+
+	// Delete the version file
+	versionPath := filepath.Join(h.getHistoryDir(), filename)
+	if err := os.Remove(versionPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	// Update manifest
+	manifest.Versions = newVersions
+	return h.saveManifest(manifest)
+}
+
 // FormatVersionName formats a version for display
 func FormatVersionName(v *Version) string {
 	return fmt.Sprintf("v%03d (%s)", v.Number, v.Timestamp.Format("2006-01-02 15:04:05"))

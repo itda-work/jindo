@@ -161,7 +161,12 @@ func runAgentsAdapt(cmd *cobra.Command, args []string) error {
 
 	// Check if content changed
 	if newContent == content {
-		fmt.Println("\n📝 No changes made to the agent")
+		// Remove the backup since no changes were made
+		if err := historyMgr.DeleteVersion(version.Number); err == nil {
+			fmt.Println("\n📝 No changes made to the agent (backup removed)")
+		} else {
+			fmt.Println("\n📝 No changes made to the agent")
+		}
 		return nil
 	}
 
