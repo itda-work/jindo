@@ -11,8 +11,10 @@ var rootCmd = &cobra.Command{
 	Long: `jd is a CLI tool for managing Claude Code configurations
 including skills, commands, agents, and hooks.
 
+Default scope: local (.claude) if present, otherwise global (~/.claude).
+
 Subcommand aliases: skills(s), commands(c), agents(a), hooks(h), pkg(p), list(l)
-Subcommand aliases: list(l), new(n), show(s), edit(e), delete(d,rm)
+Common subcommand aliases: list(l,ls), new(n,add,create), show(s,get,view), edit(e,update,modify), delete(d,rm,remove)
 
 Use 'jd --help' for all available commands.`,
 }

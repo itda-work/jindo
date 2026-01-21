@@ -24,7 +24,8 @@ var hooksEditCmd = &cobra.Command{
 	Long: `Edit an existing hook in ~/.claude/settings.json (global) or .claude/settings.json (local).
 
 If no flags are provided, runs in interactive mode showing current values.
-Use --local to edit from the current directory's .claude/settings.json.
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.
 
 Examples:
   jd hooks edit PreToolUse-Bash-0
@@ -40,30 +41,27 @@ func init() {
 	hooksCmd.AddCommand(hooksEditCmd)
 	hooksEditCmd.Flags().StringVarP(&hooksEditMatcher, "matcher", "m", "", "New matcher pattern")
 	hooksEditCmd.Flags().StringVarP(&hooksEditCommand, "command", "c", "", "New command (replaces all existing commands)")
-	hooksEditCmd.Flags().BoolVarP(&hooksEditGlobal, "global", "g", false, "Edit from global ~/.claude/settings.json (default)")
+	hooksEditCmd.Flags().BoolVarP(&hooksEditGlobal, "global", "g", false, "Edit from global ~/.claude/settings.json")
 	hooksEditCmd.Flags().BoolVarP(&hooksEditLocal, "local", "l", false, "Edit from local .claude/settings.json")
 }
 
 func runHooksEdit(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(hooksEditGlobal, hooksEditLocal); err != nil {
+	scope, err := ResolveScope(hooksEditGlobal, hooksEditLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if hooksEditLocal {
-		scope = ScopeLocal
-	}
-
 	store := hook.NewStore(GetSettingsPathByScope(scope))
 	h, err := store.Get(name)
 	if err != nil {
-		return fmt.Errorf("hook not found: %s", name)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("hook not found in %s: %s", ScopeDescription(scope), name)
+		}
+		return fmt.Errorf("failed to get hook: %w", err)
 	}
 
 	reader := bufio.NewReader(os.Stdin)

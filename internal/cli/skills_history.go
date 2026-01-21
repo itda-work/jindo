@@ -34,24 +34,18 @@ Use 'jd skills revert' to restore a previous version.`,
 
 func init() {
 	skillsCmd.AddCommand(skillsHistoryCmd)
-	skillsHistoryCmd.Flags().BoolVarP(&skillsHistoryGlobal, "global", "g", false, "Show from global ~/.claude/skills/ (default)")
+	skillsHistoryCmd.Flags().BoolVarP(&skillsHistoryGlobal, "global", "g", false, "Show from global ~/.claude/skills/")
 	skillsHistoryCmd.Flags().BoolVarP(&skillsHistoryLocal, "local", "l", false, "Show from local .claude/skills/")
 }
 
 func runSkillsHistory(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(skillsHistoryGlobal, skillsHistoryLocal); err != nil {
-		return err
-	}
-
 	skillID := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if skillsHistoryLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(skillsHistoryGlobal, skillsHistoryLocal)
+	if err != nil {
+		return err
 	}
 
 	skillsDir := GetPathByScope(scope, "skills")
@@ -61,7 +55,7 @@ func runSkillsHistory(cmd *cobra.Command, args []string) error {
 	s, err := store.Get(skillID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", skillID)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), skillID)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}

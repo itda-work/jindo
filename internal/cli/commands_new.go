@@ -20,13 +20,14 @@ var (
 
 var commandsNewCmd = &cobra.Command{
 	Use:     "new <command-name>",
-	Aliases: []string{"n"},
+	Aliases: []string{"n", "add", "create"},
 	Short:   "Create a new command",
 	Long: `Create a new command in ~/.claude/commands/ (global) or .claude/commands/ (local) directory.
 
 By default, uses Claude CLI to interactively generate the command content.
 Use --no-ai to create a minimal template without AI assistance.
-Use --local to create in the current directory's .claude/commands/.
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.
 
 Command names can include subdirectory prefix (e.g., "game:asset" creates game/asset.md).`,
 	Args: cobra.ExactArgs(1),
@@ -38,25 +39,19 @@ func init() {
 	commandsNewCmd.Flags().BoolVarP(&commandsNewEdit, "edit", "e", false, "Open editor after creation")
 	commandsNewCmd.Flags().BoolVar(&commandsNewNoAI, "no-ai", false, "Create minimal template without AI")
 	commandsNewCmd.Flags().StringVarP(&commandsNewDesc, "description", "d", "", "Command description (for --no-ai mode)")
-	commandsNewCmd.Flags().BoolVarP(&commandsNewGlobal, "global", "g", false, "Create in global ~/.claude/commands/ (default)")
+	commandsNewCmd.Flags().BoolVarP(&commandsNewGlobal, "global", "g", false, "Create in global ~/.claude/commands/")
 	commandsNewCmd.Flags().BoolVarP(&commandsNewLocal, "local", "l", false, "Create in local .claude/commands/")
 }
 
 func runCommandsNew(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(commandsNewGlobal, commandsNewLocal); err != nil {
+	scope, err := ResolveScope(commandsNewGlobal, commandsNewLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if commandsNewLocal {
-		scope = ScopeLocal
-	}
 
 	// Get commands directory based on scope
 	var baseDir string

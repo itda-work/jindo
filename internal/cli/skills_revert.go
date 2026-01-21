@@ -36,24 +36,18 @@ Version can be a number (e.g., 1, 2) or 'latest'.`,
 
 func init() {
 	skillsCmd.AddCommand(skillsRevertCmd)
-	skillsRevertCmd.Flags().BoolVarP(&skillsRevertGlobal, "global", "g", false, "Revert from global ~/.claude/skills/ (default)")
+	skillsRevertCmd.Flags().BoolVarP(&skillsRevertGlobal, "global", "g", false, "Revert from global ~/.claude/skills/")
 	skillsRevertCmd.Flags().BoolVarP(&skillsRevertLocal, "local", "l", false, "Revert from local .claude/skills/")
 }
 
 func runSkillsRevert(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(skillsRevertGlobal, skillsRevertLocal); err != nil {
-		return err
-	}
-
 	skillID := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if skillsRevertLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(skillsRevertGlobal, skillsRevertLocal)
+	if err != nil {
+		return err
 	}
 
 	skillsDir := GetPathByScope(scope, "skills")
@@ -63,7 +57,7 @@ func runSkillsRevert(cmd *cobra.Command, args []string) error {
 	s, err := store.Get(skillID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", skillID)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), skillID)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}

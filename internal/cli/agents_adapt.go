@@ -30,7 +30,8 @@ This command:
 3. Modifies the agent based on the conversation
 4. Saves changes and updates version history
 
-Use --local to adapt from the current directory's .claude/agents/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Example: `  # Adapt a global agent
   jd agents adapt my-agent
 
@@ -43,25 +44,19 @@ Use --local to adapt from the current directory's .claude/agents/.`,
 
 func init() {
 	agentsCmd.AddCommand(agentsAdaptCmd)
-	agentsAdaptCmd.Flags().BoolVarP(&agentsAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/agents/ (default)")
+	agentsAdaptCmd.Flags().BoolVarP(&agentsAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/agents/")
 	agentsAdaptCmd.Flags().BoolVarP(&agentsAdaptLocal, "local", "l", false, "Adapt from local .claude/agents/")
 }
 
 func runAgentsAdapt(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(agentsAdaptGlobal, agentsAdaptLocal); err != nil {
+	scope, err := ResolveScope(agentsAdaptGlobal, agentsAdaptLocal)
+	if err != nil {
 		return err
 	}
 
 	agentID := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsAdaptLocal {
-		scope = ScopeLocal
-	}
 
 	agentsDir := GetPathByScope(scope, "agents")
 	store := agent.NewStore(agentsDir)
@@ -70,7 +65,7 @@ func runAgentsAdapt(cmd *cobra.Command, args []string) error {
 	a, err := store.Get(agentID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", agentID)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), agentID)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}

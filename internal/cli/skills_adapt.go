@@ -29,7 +29,8 @@ This command:
 3. Modifies the skill based on the conversation
 4. Saves changes and updates version history
 
-Use --local to adapt from the current directory's .claude/skills/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Example: `  # Adapt a global skill
   jd skills adapt my-skill
 
@@ -42,25 +43,19 @@ Use --local to adapt from the current directory's .claude/skills/.`,
 
 func init() {
 	skillsCmd.AddCommand(skillsAdaptCmd)
-	skillsAdaptCmd.Flags().BoolVarP(&skillsAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/skills/ (default)")
+	skillsAdaptCmd.Flags().BoolVarP(&skillsAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/skills/")
 	skillsAdaptCmd.Flags().BoolVarP(&skillsAdaptLocal, "local", "l", false, "Adapt from local .claude/skills/")
 }
 
 func runSkillsAdapt(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(skillsAdaptGlobal, skillsAdaptLocal); err != nil {
+	scope, err := ResolveScope(skillsAdaptGlobal, skillsAdaptLocal)
+	if err != nil {
 		return err
 	}
 
 	skillID := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if skillsAdaptLocal {
-		scope = ScopeLocal
-	}
 
 	skillsDir := GetPathByScope(scope, "skills")
 	store := skill.NewStore(skillsDir)
@@ -69,7 +64,7 @@ func runSkillsAdapt(cmd *cobra.Command, args []string) error {
 	s, err := store.Get(skillID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", skillID)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), skillID)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}

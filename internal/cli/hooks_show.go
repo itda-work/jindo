@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/itda-work/jindo/internal/hook"
 	"github.com/spf13/cobra"
@@ -20,7 +21,8 @@ var hooksShowCmd = &cobra.Command{
 	Short:   "Show hook details",
 	Long: `Show details of a specific hook from ~/.claude/settings.json (global) or .claude/settings.json (local).
 
-Use --local to show from the current directory's .claude/settings.json.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runHooksShow,
 	ValidArgsFunction: hookNameCompletion,
@@ -29,7 +31,7 @@ Use --local to show from the current directory's .claude/settings.json.`,
 func init() {
 	hooksCmd.AddCommand(hooksShowCmd)
 	hooksShowCmd.Flags().BoolVar(&hooksShowJSON, "json", false, "Output in JSON format")
-	hooksShowCmd.Flags().BoolVarP(&hooksShowGlobal, "global", "g", false, "Show from global ~/.claude/settings.json (default)")
+	hooksShowCmd.Flags().BoolVarP(&hooksShowGlobal, "global", "g", false, "Show from global ~/.claude/settings.json")
 	hooksShowCmd.Flags().BoolVarP(&hooksShowLocal, "local", "l", false, "Show from local .claude/settings.json")
 }
 
@@ -37,16 +39,18 @@ func runHooksShow(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	name := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if hooksShowLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(hooksShowGlobal, hooksShowLocal)
+	if err != nil {
+		return err
 	}
 
 	store := hook.NewStore(GetSettingsPathByScope(scope))
 	h, err := store.Get(name)
 	if err != nil {
-		return fmt.Errorf("hook not found: %s", name)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("hook not found in %s: %s", ScopeDescription(scope), name)
+		}
+		return fmt.Errorf("failed to get hook: %w", err)
 	}
 
 	if hooksShowJSON {
@@ -93,10 +97,11 @@ func hookNameCompletion(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	// Check if --local flag is set
-	scope := ScopeGlobal
-	if local, _ := cmd.Flags().GetBool("local"); local {
-		scope = ScopeLocal
+	global, _ := cmd.Flags().GetBool("global")
+	local, _ := cmd.Flags().GetBool("local")
+	scope, err := ResolveScope(global, local)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	store := hook.NewStore(GetSettingsPathByScope(scope))

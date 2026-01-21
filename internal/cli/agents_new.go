@@ -20,13 +20,14 @@ var (
 
 var agentsNewCmd = &cobra.Command{
 	Use:     "new <agent-name>",
-	Aliases: []string{"n"},
+	Aliases: []string{"n", "add", "create"},
 	Short:   "Create a new agent",
 	Long: `Create a new agent in ~/.claude/agents/ (global) or .claude/agents/ (local) directory.
 
 By default, uses Claude CLI to interactively generate the agent content.
 Use --no-ai to create a minimal template without AI assistance.
-Use --local to create in the current directory's .claude/agents/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runAgentsNew,
 }
@@ -37,25 +38,19 @@ func init() {
 	agentsNewCmd.Flags().BoolVar(&agentsNewNoAI, "no-ai", false, "Create minimal template without AI")
 	agentsNewCmd.Flags().StringVarP(&agentsNewDesc, "description", "d", "", "Agent description (for --no-ai mode)")
 	agentsNewCmd.Flags().StringVarP(&agentsNewModel, "model", "m", "", "Model to use (for --no-ai mode)")
-	agentsNewCmd.Flags().BoolVarP(&agentsNewGlobal, "global", "g", false, "Create in global ~/.claude/agents/ (default)")
+	agentsNewCmd.Flags().BoolVarP(&agentsNewGlobal, "global", "g", false, "Create in global ~/.claude/agents/")
 	agentsNewCmd.Flags().BoolVarP(&agentsNewLocal, "local", "l", false, "Create in local .claude/agents/")
 }
 
 func runAgentsNew(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(agentsNewGlobal, agentsNewLocal); err != nil {
+	scope, err := ResolveScope(agentsNewGlobal, agentsNewLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsNewLocal {
-		scope = ScopeLocal
-	}
 
 	// Get agents directory based on scope
 	var agentsDir string

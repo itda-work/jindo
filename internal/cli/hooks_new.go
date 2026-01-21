@@ -28,7 +28,8 @@ var hooksNewCmd = &cobra.Command{
 
 This command runs in wizard mode if no flags are provided.
 You can also specify all options via flags for non-interactive use.
-Use --local to create in the current directory's .claude/settings.json.
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.
 
 Event types (with aliases):
   - PreToolUse (pre): Runs before a tool is executed
@@ -58,7 +59,7 @@ func init() {
 	hooksNewCmd.Flags().StringVarP(&hooksNewMatcher, "matcher", "m", "", "Tool matcher pattern (e.g., Bash, \"Bash|Write\", *)")
 	hooksNewCmd.Flags().StringVarP(&hooksNewCommand, "command", "c", "", "Command to execute")
 	hooksNewCmd.Flags().BoolVar(&hooksNewCreateScript, "script", false, "Create a script file in ~/.claude/hooks/")
-	hooksNewCmd.Flags().BoolVarP(&hooksNewGlobal, "global", "g", false, "Create in global ~/.claude/settings.json (default)")
+	hooksNewCmd.Flags().BoolVarP(&hooksNewGlobal, "global", "g", false, "Create in global ~/.claude/settings.json")
 	hooksNewCmd.Flags().BoolVarP(&hooksNewLocal, "local", "l", false, "Create in local .claude/settings.json")
 
 	// Register completion for --event flag
@@ -94,8 +95,8 @@ func hooksNewCompletion(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 func runHooksNew(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(hooksNewGlobal, hooksNewLocal); err != nil {
+	scope, err := ResolveScope(hooksNewGlobal, hooksNewLocal)
+	if err != nil {
 		return err
 	}
 
@@ -199,12 +200,6 @@ echo "Hook triggered: %s for $TOOL_NAME"
 
 		fmt.Printf("Created script: %s\n", scriptPath)
 		command = scriptPath
-	}
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if hooksNewLocal {
-		scope = ScopeLocal
 	}
 
 	// Add hook to settings.json

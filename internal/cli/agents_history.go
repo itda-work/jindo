@@ -35,24 +35,18 @@ Use 'jd agents revert' to restore a previous version.`,
 
 func init() {
 	agentsCmd.AddCommand(agentsHistoryCmd)
-	agentsHistoryCmd.Flags().BoolVarP(&agentsHistoryGlobal, "global", "g", false, "Show from global ~/.claude/agents/ (default)")
+	agentsHistoryCmd.Flags().BoolVarP(&agentsHistoryGlobal, "global", "g", false, "Show from global ~/.claude/agents/")
 	agentsHistoryCmd.Flags().BoolVarP(&agentsHistoryLocal, "local", "l", false, "Show from local .claude/agents/")
 }
 
 func runAgentsHistory(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(agentsHistoryGlobal, agentsHistoryLocal); err != nil {
-		return err
-	}
-
 	agentID := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsHistoryLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(agentsHistoryGlobal, agentsHistoryLocal)
+	if err != nil {
+		return err
 	}
 
 	agentsDir := GetPathByScope(scope, "agents")
@@ -62,7 +56,7 @@ func runAgentsHistory(cmd *cobra.Command, args []string) error {
 	a, err := store.Get(agentID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", agentID)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), agentID)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}

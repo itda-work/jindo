@@ -17,13 +17,14 @@ var (
 
 var commandsEditCmd = &cobra.Command{
 	Use:     "edit <command-name>",
-	Aliases: []string{"e"},
+	Aliases: []string{"e", "update", "modify"},
 	Short:   "Edit an existing command",
 	Long: `Edit an existing command in ~/.claude/commands/ (global) or .claude/commands/ (local) directory.
 
 By default, uses Claude CLI to interactively edit the command content.
 Use --editor to open the command file directly in your editor.
-Use --local to edit from the current directory's .claude/commands/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runCommandsEdit,
 }
@@ -31,25 +32,19 @@ Use --local to edit from the current directory's .claude/commands/.`,
 func init() {
 	commandsCmd.AddCommand(commandsEditCmd)
 	commandsEditCmd.Flags().BoolVarP(&commandsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
-	commandsEditCmd.Flags().BoolVarP(&commandsEditGlobal, "global", "g", false, "Edit from global ~/.claude/commands/ (default)")
+	commandsEditCmd.Flags().BoolVarP(&commandsEditGlobal, "global", "g", false, "Edit from global ~/.claude/commands/")
 	commandsEditCmd.Flags().BoolVarP(&commandsEditLocal, "local", "l", false, "Edit from local .claude/commands/")
 }
 
 func runCommandsEdit(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(commandsEditGlobal, commandsEditLocal); err != nil {
+	scope, err := ResolveScope(commandsEditGlobal, commandsEditLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if commandsEditLocal {
-		scope = ScopeLocal
-	}
 
 	store := command.NewStore(GetPathByScope(scope, "commands"))
 
@@ -57,7 +52,7 @@ func runCommandsEdit(cmd *cobra.Command, args []string) error {
 	c, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("command not found: %s", name)
+			return fmt.Errorf("command not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get command: %w", err)
 	}

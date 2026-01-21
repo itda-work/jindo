@@ -18,13 +18,14 @@ var (
 
 var commandsDeleteCmd = &cobra.Command{
 	Use:     "delete <command-name>",
-	Aliases: []string{"d", "rm"},
+	Aliases: []string{"d", "rm", "remove"},
 	Short:   "Delete a command",
 	Long: `Delete a command from ~/.claude/commands/ (global) or .claude/commands/ (local) directory.
 
 This will delete the command file.
 Use --force to skip the confirmation prompt.
-Use --local to delete from the current directory's .claude/commands/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runCommandsDelete,
 }
@@ -32,25 +33,19 @@ Use --local to delete from the current directory's .claude/commands/.`,
 func init() {
 	commandsCmd.AddCommand(commandsDeleteCmd)
 	commandsDeleteCmd.Flags().BoolVarP(&commandsDeleteForce, "force", "f", false, "Skip confirmation prompt")
-	commandsDeleteCmd.Flags().BoolVarP(&commandsDeleteGlobal, "global", "g", false, "Delete from global ~/.claude/commands/ (default)")
+	commandsDeleteCmd.Flags().BoolVarP(&commandsDeleteGlobal, "global", "g", false, "Delete from global ~/.claude/commands/")
 	commandsDeleteCmd.Flags().BoolVarP(&commandsDeleteLocal, "local", "l", false, "Delete from local .claude/commands/")
 }
 
 func runCommandsDelete(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(commandsDeleteGlobal, commandsDeleteLocal); err != nil {
+	scope, err := ResolveScope(commandsDeleteGlobal, commandsDeleteLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if commandsDeleteLocal {
-		scope = ScopeLocal
-	}
 
 	store := command.NewStore(GetPathByScope(scope, "commands"))
 
@@ -58,7 +53,7 @@ func runCommandsDelete(cmd *cobra.Command, args []string) error {
 	c, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("command not found: %s", name)
+			return fmt.Errorf("command not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get command: %w", err)
 	}

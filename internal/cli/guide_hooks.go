@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"text/template"
 
 	"github.com/itda-work/jindo/internal/guide"
@@ -54,7 +55,7 @@ Use --format html to generate HTML and open in browser.`,
 func init() {
 	guideCmd.AddCommand(guideHooksCmd)
 	guideHooksCmd.Flags().BoolVarP(&guideHooksInteractive, "interactive", "i", false, "Interactive mode - AI asks questions for personalized guidance")
-	guideHooksCmd.Flags().BoolVarP(&guideHooksGlobal, "global", "g", false, "Guide from global ~/.claude/settings.json (default)")
+	guideHooksCmd.Flags().BoolVarP(&guideHooksGlobal, "global", "g", false, "Guide from global ~/.claude/settings.json")
 	guideHooksCmd.Flags().BoolVarP(&guideHooksLocal, "local", "l", false, "Guide from local .claude/settings.json")
 	guideHooksCmd.Flags().BoolVarP(&guideHooksRefresh, "refresh", "r", false, "Regenerate the guide even if cached")
 	guideHooksCmd.Flags().StringVarP(&guideHooksFormat, "format", "f", "", "Output format: html (opens in browser)")
@@ -63,26 +64,25 @@ func init() {
 func runGuideHooks(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	if err := ValidateScopeFlags(guideHooksGlobal, guideHooksLocal); err != nil {
-		return err
-	}
-
 	if guideHooksFormat != "" && guideHooksFormat != "html" {
 		return fmt.Errorf("invalid format: %s (use 'html')", guideHooksFormat)
 	}
 
 	hookName := args[0]
 
-	scope := ScopeGlobal
-	if guideHooksLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(guideHooksGlobal, guideHooksLocal)
+	if err != nil {
+		return err
 	}
 
 	store := hook.NewStore(GetSettingsPathByScope(scope))
 
 	h, err := store.Get(hookName)
 	if err != nil {
-		return fmt.Errorf("hook not found: %s", hookName)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("hook not found in %s: %s", ScopeDescription(scope), hookName)
+		}
+		return fmt.Errorf("failed to get hook: %w", err)
 	}
 
 	content, err := json.MarshalIndent(h, "", "  ")

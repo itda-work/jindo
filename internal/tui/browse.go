@@ -743,9 +743,10 @@ func (m Model) View() string {
 }
 
 // Run starts the TUI
-func Run(manager *pkgmgr.Manager, namespace string) error {
+func Run(manager *pkgmgr.Manager, namespace string, startTab Tab) error {
 	m := NewModel(manager)
 	m.namespaceFilter = namespace
+	m.activeTab = startTab
 	if err := m.LoadPackages(); err != nil {
 		return err
 	}

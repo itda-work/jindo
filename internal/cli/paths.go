@@ -17,6 +17,40 @@ func ValidateScopeFlags(global, local bool) error {
 	return nil
 }
 
+// DefaultScope returns the default scope.
+// If a local .claude directory exists in the current working directory, local scope is preferred.
+func DefaultScope() PathScope {
+	if LocalClaudeDirExists() {
+		return ScopeLocal
+	}
+	return ScopeGlobal
+}
+
+// ResolveScope determines the effective scope given optional --global/--local flags.
+// Default is local if .claude exists, otherwise global.
+func ResolveScope(globalFlag, localFlag bool) (PathScope, error) {
+	if err := ValidateScopeFlags(globalFlag, localFlag); err != nil {
+		return "", err
+	}
+	if localFlag {
+		return ScopeLocal, nil
+	}
+	if globalFlag {
+		return ScopeGlobal, nil
+	}
+	return DefaultScope(), nil
+}
+
+// ScopeDescription returns a user-facing description for a scope.
+func ScopeDescription(scope PathScope) string {
+	switch scope {
+	case ScopeLocal:
+		return "local (.claude)"
+	default:
+		return "global (~/.claude)"
+	}
+}
+
 const (
 	globalClaudeDir = "~/.claude"
 	localClaudeDir  = ".claude"

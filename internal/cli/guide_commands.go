@@ -54,7 +54,7 @@ Use --format html to generate HTML and open in browser.`,
 func init() {
 	guideCmd.AddCommand(guideCommandsCmd)
 	guideCommandsCmd.Flags().BoolVarP(&guideCommandsInteractive, "interactive", "i", false, "Interactive mode - AI asks questions for personalized guidance")
-	guideCommandsCmd.Flags().BoolVarP(&guideCommandsGlobal, "global", "g", false, "Guide from global ~/.claude/commands/ (default)")
+	guideCommandsCmd.Flags().BoolVarP(&guideCommandsGlobal, "global", "g", false, "Guide from global ~/.claude/commands/")
 	guideCommandsCmd.Flags().BoolVarP(&guideCommandsLocal, "local", "l", false, "Guide from local .claude/commands/")
 	guideCommandsCmd.Flags().BoolVarP(&guideCommandsRefresh, "refresh", "r", false, "Regenerate the guide even if cached")
 	guideCommandsCmd.Flags().StringVarP(&guideCommandsFormat, "format", "f", "", "Output format: html (opens in browser)")
@@ -63,19 +63,15 @@ func init() {
 func runGuideCommands(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	if err := ValidateScopeFlags(guideCommandsGlobal, guideCommandsLocal); err != nil {
-		return err
-	}
-
 	if guideCommandsFormat != "" && guideCommandsFormat != "html" {
 		return fmt.Errorf("invalid format: %s (use 'html')", guideCommandsFormat)
 	}
 
 	commandName := args[0]
 
-	scope := ScopeGlobal
-	if guideCommandsLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(guideCommandsGlobal, guideCommandsLocal)
+	if err != nil {
+		return err
 	}
 
 	commandsDir := GetPathByScope(scope, "commands")
@@ -84,7 +80,7 @@ func runGuideCommands(cmd *cobra.Command, args []string) error {
 	c, err := store.Get(commandName)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("command not found: %s", commandName)
+			return fmt.Errorf("command not found in %s: %s", ScopeDescription(scope), commandName)
 		}
 		return fmt.Errorf("failed to get command: %w", err)
 	}
@@ -182,9 +178,11 @@ func commandNameCompletion(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	scope := ScopeGlobal
-	if local, _ := cmd.Flags().GetBool("local"); local {
-		scope = ScopeLocal
+	global, _ := cmd.Flags().GetBool("global")
+	local, _ := cmd.Flags().GetBool("local")
+	scope, err := ResolveScope(global, local)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	store := command.NewStore(GetPathByScope(scope, "commands"))

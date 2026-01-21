@@ -37,24 +37,18 @@ Version can be a number (e.g., 1, 2) or 'latest'.`,
 
 func init() {
 	agentsCmd.AddCommand(agentsRevertCmd)
-	agentsRevertCmd.Flags().BoolVarP(&agentsRevertGlobal, "global", "g", false, "Revert from global ~/.claude/agents/ (default)")
+	agentsRevertCmd.Flags().BoolVarP(&agentsRevertGlobal, "global", "g", false, "Revert from global ~/.claude/agents/")
 	agentsRevertCmd.Flags().BoolVarP(&agentsRevertLocal, "local", "l", false, "Revert from local .claude/agents/")
 }
 
 func runAgentsRevert(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(agentsRevertGlobal, agentsRevertLocal); err != nil {
-		return err
-	}
-
 	agentID := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsRevertLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(agentsRevertGlobal, agentsRevertLocal)
+	if err != nil {
+		return err
 	}
 
 	agentsDir := GetPathByScope(scope, "agents")
@@ -64,7 +58,7 @@ func runAgentsRevert(cmd *cobra.Command, args []string) error {
 	a, err := store.Get(agentID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", agentID)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), agentID)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}

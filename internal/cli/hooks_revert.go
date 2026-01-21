@@ -37,33 +37,30 @@ Version can be a number (e.g., 1, 2) or 'latest'.`,
 
 func init() {
 	hooksCmd.AddCommand(hooksRevertCmd)
-	hooksRevertCmd.Flags().BoolVarP(&hooksRevertGlobal, "global", "g", false, "Revert from global ~/.claude/ (default)")
+	hooksRevertCmd.Flags().BoolVarP(&hooksRevertGlobal, "global", "g", false, "Revert from global ~/.claude/")
 	hooksRevertCmd.Flags().BoolVarP(&hooksRevertLocal, "local", "l", false, "Revert from local .claude/")
 }
 
 func runHooksRevert(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(hooksRevertGlobal, hooksRevertLocal); err != nil {
-		return err
-	}
-
 	hookName := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if hooksRevertLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(hooksRevertGlobal, hooksRevertLocal)
+	if err != nil {
+		return err
 	}
 
 	settingsPath := GetSettingsPathByScope(scope)
 	store := hook.NewStore(settingsPath)
 
 	// Verify hook exists
-	_, err := store.Get(hookName)
+	_, err = store.Get(hookName)
 	if err != nil {
-		return fmt.Errorf("hook not found: %s", hookName)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("hook not found in %s: %s", ScopeDescription(scope), hookName)
+		}
+		return fmt.Errorf("failed to get hook: %w", err)
 	}
 
 	// Get claude dir for history

@@ -18,11 +18,12 @@ var (
 
 var agentsShowCmd = &cobra.Command{
 	Use:     "show <agent-name>",
-	Aliases: []string{"s"},
+	Aliases: []string{"s", "get", "view"},
 	Short:   "Show agent details",
 	Long: `Show the full content of a specific agent from ~/.claude/agents/ (global) or .claude/agents/ (local) directory.
 
-Use --local to show from the current directory's .claude/agents/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runAgentsShow,
 	ValidArgsFunction: agentNameCompletion,
@@ -31,7 +32,7 @@ Use --local to show from the current directory's .claude/agents/.`,
 func init() {
 	agentsCmd.AddCommand(agentsShowCmd)
 	agentsShowCmd.Flags().BoolVar(&agentsShowBrief, "brief", false, "Show only metadata (name, description, model)")
-	agentsShowCmd.Flags().BoolVarP(&agentsShowGlobal, "global", "g", false, "Show from global ~/.claude/agents/ (default)")
+	agentsShowCmd.Flags().BoolVarP(&agentsShowGlobal, "global", "g", false, "Show from global ~/.claude/agents/")
 	agentsShowCmd.Flags().BoolVarP(&agentsShowLocal, "local", "l", false, "Show from local .claude/agents/")
 }
 
@@ -39,26 +40,25 @@ func runAgentsShow(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	name := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsShowLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(agentsShowGlobal, agentsShowLocal)
+	if err != nil {
+		return err
 	}
 
 	store := agent.NewStore(GetPathByScope(scope, "agents"))
 
 	if agentsShowBrief {
-		return showAgentBrief(store, name)
+		return showAgentBrief(store, name, scope)
 	}
 
-	return showAgentFull(store, name)
+	return showAgentFull(store, name, scope)
 }
 
-func showAgentBrief(store *agent.Store, name string) error {
+func showAgentBrief(store *agent.Store, name string, scope PathScope) error {
 	a, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", name)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}
@@ -71,11 +71,11 @@ func showAgentBrief(store *agent.Store, name string) error {
 	return nil
 }
 
-func showAgentFull(store *agent.Store, name string) error {
+func showAgentFull(store *agent.Store, name string, scope PathScope) error {
 	content, err := store.GetContent(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", name)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get agent content: %w", err)
 	}
@@ -90,10 +90,11 @@ func agentNameCompletion(cmd *cobra.Command, args []string, toComplete string) (
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	// Check if --local flag is set
-	scope := ScopeGlobal
-	if local, _ := cmd.Flags().GetBool("local"); local {
-		scope = ScopeLocal
+	global, _ := cmd.Flags().GetBool("global")
+	local, _ := cmd.Flags().GetBool("local")
+	scope, err := ResolveScope(global, local)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	store := agent.NewStore(GetPathByScope(scope, "agents"))

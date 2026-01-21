@@ -18,11 +18,12 @@ var (
 
 var skillsShowCmd = &cobra.Command{
 	Use:     "show <skill-name>",
-	Aliases: []string{"s"},
+	Aliases: []string{"s", "get", "view"},
 	Short:   "Show skill details",
 	Long: `Show the full content of a specific skill from ~/.claude/skills/ (global) or .claude/skills/ (local) directory.
 
-Use --local to show from the current directory's .claude/skills/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runSkillsShow,
 	ValidArgsFunction: skillNameCompletion,
@@ -31,7 +32,7 @@ Use --local to show from the current directory's .claude/skills/.`,
 func init() {
 	skillsCmd.AddCommand(skillsShowCmd)
 	skillsShowCmd.Flags().BoolVar(&skillsShowBrief, "brief", false, "Show only frontmatter (name, description, allowed-tools)")
-	skillsShowCmd.Flags().BoolVarP(&skillsShowGlobal, "global", "g", false, "Show from global ~/.claude/skills/ (default)")
+	skillsShowCmd.Flags().BoolVarP(&skillsShowGlobal, "global", "g", false, "Show from global ~/.claude/skills/")
 	skillsShowCmd.Flags().BoolVarP(&skillsShowLocal, "local", "l", false, "Show from local .claude/skills/")
 }
 
@@ -39,26 +40,25 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	name := args[0]
 
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if skillsShowLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(skillsShowGlobal, skillsShowLocal)
+	if err != nil {
+		return err
 	}
 
 	store := skill.NewStore(GetPathByScope(scope, "skills"))
 
 	if skillsShowBrief {
-		return showSkillBrief(store, name)
+		return showSkillBrief(store, name, scope)
 	}
 
-	return showSkillFull(store, name)
+	return showSkillFull(store, name, scope)
 }
 
-func showSkillBrief(store *skill.Store, name string) error {
+func showSkillBrief(store *skill.Store, name string, scope PathScope) error {
 	s, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", name)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}
@@ -71,11 +71,11 @@ func showSkillBrief(store *skill.Store, name string) error {
 	return nil
 }
 
-func showSkillFull(store *skill.Store, name string) error {
+func showSkillFull(store *skill.Store, name string, scope PathScope) error {
 	content, err := store.GetContent(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", name)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get skill content: %w", err)
 	}
@@ -90,10 +90,11 @@ func skillNameCompletion(cmd *cobra.Command, args []string, toComplete string) (
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	// Check if --local flag is set
-	scope := ScopeGlobal
-	if local, _ := cmd.Flags().GetBool("local"); local {
-		scope = ScopeLocal
+	global, _ := cmd.Flags().GetBool("global")
+	local, _ := cmd.Flags().GetBool("local")
+	scope, err := ResolveScope(global, local)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	store := skill.NewStore(GetPathByScope(scope, "skills"))

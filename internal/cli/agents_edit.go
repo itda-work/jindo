@@ -17,13 +17,14 @@ var (
 
 var agentsEditCmd = &cobra.Command{
 	Use:     "edit <agent-name>",
-	Aliases: []string{"e"},
+	Aliases: []string{"e", "update", "modify"},
 	Short:   "Edit an existing agent",
 	Long: `Edit an existing agent in ~/.claude/agents/ (global) or .claude/agents/ (local) directory.
 
 By default, uses Claude CLI to interactively edit the agent content.
 Use --editor to open the agent file directly in your editor.
-Use --local to edit from the current directory's .claude/agents/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runAgentsEdit,
 	ValidArgsFunction: agentNameCompletion,
@@ -32,25 +33,19 @@ Use --local to edit from the current directory's .claude/agents/.`,
 func init() {
 	agentsCmd.AddCommand(agentsEditCmd)
 	agentsEditCmd.Flags().BoolVarP(&agentsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
-	agentsEditCmd.Flags().BoolVarP(&agentsEditGlobal, "global", "g", false, "Edit from global ~/.claude/agents/ (default)")
+	agentsEditCmd.Flags().BoolVarP(&agentsEditGlobal, "global", "g", false, "Edit from global ~/.claude/agents/")
 	agentsEditCmd.Flags().BoolVarP(&agentsEditLocal, "local", "l", false, "Edit from local .claude/agents/")
 }
 
 func runAgentsEdit(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(agentsEditGlobal, agentsEditLocal); err != nil {
+	scope, err := ResolveScope(agentsEditGlobal, agentsEditLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if agentsEditLocal {
-		scope = ScopeLocal
-	}
 
 	store := agent.NewStore(GetPathByScope(scope, "agents"))
 
@@ -58,7 +53,7 @@ func runAgentsEdit(cmd *cobra.Command, args []string) error {
 	a, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", name)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}

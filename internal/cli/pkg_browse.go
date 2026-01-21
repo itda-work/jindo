@@ -25,7 +25,7 @@ var pkgBrowseCmd = &cobra.Command{
 Without arguments, opens an interactive TUI to browse all registered repositories.
 With a namespace argument, opens TUI filtered to that specific repository.
 
-Use --type to filter by package type.
+Use --type to select the initial tab (TUI) or filter output (--json).
 Use --json for machine-readable output.
 
 Examples:
@@ -57,6 +57,21 @@ func runPkgBrowse(cmd *cobra.Command, args []string) error {
 		return runPkgBrowseCLI(namespace)
 	}
 
+	// Validate/parse type for TUI starting tab
+	var startTab tui.Tab
+	switch pkgBrowseType {
+	case "", "skills", "skill":
+		startTab = tui.TabSkills
+	case "commands", "command":
+		startTab = tui.TabCommands
+	case "agents", "agent":
+		startTab = tui.TabAgents
+	case "hooks", "hook":
+		startTab = tui.TabHooks
+	default:
+		return fmt.Errorf("invalid type: %s (use: skills, commands, agents, hooks)", pkgBrowseType)
+	}
+
 	// Launch TUI (with optional namespace filter)
 	manager := pkgmgr.NewManager("~/.itda-jindo")
 
@@ -68,7 +83,7 @@ func runPkgBrowse(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return tui.Run(manager, namespace)
+	return tui.Run(manager, namespace, startTab)
 }
 
 func runPkgBrowseCLI(namespace string) error {

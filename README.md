@@ -84,9 +84,16 @@ Sub-command aliases (common across all resource types):
 - `edit` → `e`, `update`, `modify`
 - `delete` → `d`, `rm`, `remove`
 
+### Default Scope
+
+If a `.claude/` directory exists in your current working directory, `jd` commands default to **local** scope (`.claude/`).
+Otherwise they default to **global** scope (`~/.claude/`).
+
+Use `--local` or `--global` to override.
+
 ### List All
 
-Quickly list all skills, agents, and commands.
+Quickly list all skills, agents, commands, and hooks.
 
 ```bash
 jd list                # List all
@@ -97,7 +104,7 @@ jd list --json         # JSON output
 
 ### Skills
 
-Skills are reusable prompts stored in `~/.claude/skills/<name>/SKILL.md`.
+Skills are reusable prompts stored in `~/.claude/skills/<name>/SKILL.md` (global) or `.claude/skills/<name>/SKILL.md` (local).
 
 ```bash
 # List all skills
@@ -129,7 +136,7 @@ jd s rm my-skill -f    # skip confirmation
 
 ### Commands
 
-Commands are slash commands stored in `~/.claude/commands/`.
+Commands are slash commands stored in `~/.claude/commands/` (global) or `.claude/commands/` (local).
 
 ```bash
 # List all commands
@@ -155,7 +162,7 @@ jd c rm my-command -f
 
 ### Agents
 
-Agents are AI configurations stored in `~/.claude/agents/`.
+Agents are AI configurations stored in `~/.claude/agents/` (global) or `.claude/agents/` (local).
 
 ```bash
 # List all agents
@@ -180,7 +187,7 @@ jd a rm my-agent -f
 
 ### Hooks
 
-Hooks are event-driven scripts configured in `~/.claude/settings.json`.
+Hooks are event-driven scripts configured in `~/.claude/settings.json` (global) or `.claude/settings.json` (local).
 
 ```bash
 # List all hooks
@@ -420,7 +427,7 @@ Agent system prompt and instructions...
 
 ### Hook Configuration (settings.json)
 
-Hooks are configured in `~/.claude/settings.json`:
+Hooks are configured in `~/.claude/settings.json` (global) or `.claude/settings.json` (local):
 
 ```json
 {

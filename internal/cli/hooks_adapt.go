@@ -31,7 +31,8 @@ This command:
 3. Provides guidance on modifying the hook
 4. Helps you update the hook configuration
 
-Use --local to adapt from the current directory's .claude/settings.json.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Example: `  # Adapt a global hook
   jd hooks adapt PreToolUse-Bash-0
 
@@ -44,25 +45,19 @@ Use --local to adapt from the current directory's .claude/settings.json.`,
 
 func init() {
 	hooksCmd.AddCommand(hooksAdaptCmd)
-	hooksAdaptCmd.Flags().BoolVarP(&hooksAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/settings.json (default)")
+	hooksAdaptCmd.Flags().BoolVarP(&hooksAdaptGlobal, "global", "g", false, "Adapt from global ~/.claude/settings.json")
 	hooksAdaptCmd.Flags().BoolVarP(&hooksAdaptLocal, "local", "l", false, "Adapt from local .claude/settings.json")
 }
 
 func runHooksAdapt(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(hooksAdaptGlobal, hooksAdaptLocal); err != nil {
+	scope, err := ResolveScope(hooksAdaptGlobal, hooksAdaptLocal)
+	if err != nil {
 		return err
 	}
 
 	hookName := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if hooksAdaptLocal {
-		scope = ScopeLocal
-	}
 
 	settingsPath := GetSettingsPathByScope(scope)
 	store := hook.NewStore(settingsPath)
@@ -70,7 +65,10 @@ func runHooksAdapt(cmd *cobra.Command, args []string) error {
 	// Get hook to verify it exists
 	h, err := store.Get(hookName)
 	if err != nil {
-		return fmt.Errorf("hook not found: %s", hookName)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("hook not found in %s: %s", ScopeDescription(scope), hookName)
+		}
+		return fmt.Errorf("failed to get hook: %w", err)
 	}
 
 	// Get claude dir for history

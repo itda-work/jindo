@@ -54,7 +54,7 @@ Use --format html to generate HTML and open in browser.`,
 func init() {
 	guideCmd.AddCommand(guideSkillsCmd)
 	guideSkillsCmd.Flags().BoolVarP(&guideSkillsInteractive, "interactive", "i", false, "Interactive mode - AI asks questions for personalized guidance")
-	guideSkillsCmd.Flags().BoolVarP(&guideSkillsGlobal, "global", "g", false, "Guide from global ~/.claude/skills/ (default)")
+	guideSkillsCmd.Flags().BoolVarP(&guideSkillsGlobal, "global", "g", false, "Guide from global ~/.claude/skills/")
 	guideSkillsCmd.Flags().BoolVarP(&guideSkillsLocal, "local", "l", false, "Guide from local .claude/skills/")
 	guideSkillsCmd.Flags().BoolVarP(&guideSkillsRefresh, "refresh", "r", false, "Regenerate the guide even if cached")
 	guideSkillsCmd.Flags().StringVarP(&guideSkillsFormat, "format", "f", "", "Output format: html (opens in browser)")
@@ -63,19 +63,15 @@ func init() {
 func runGuideSkills(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	if err := ValidateScopeFlags(guideSkillsGlobal, guideSkillsLocal); err != nil {
-		return err
-	}
-
 	if guideSkillsFormat != "" && guideSkillsFormat != "html" {
 		return fmt.Errorf("invalid format: %s (use 'html')", guideSkillsFormat)
 	}
 
 	skillID := args[0]
 
-	scope := ScopeGlobal
-	if guideSkillsLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(guideSkillsGlobal, guideSkillsLocal)
+	if err != nil {
+		return err
 	}
 
 	skillsDir := GetPathByScope(scope, "skills")
@@ -84,7 +80,7 @@ func runGuideSkills(cmd *cobra.Command, args []string) error {
 	s, err := store.Get(skillID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", skillID)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), skillID)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}

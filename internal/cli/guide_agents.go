@@ -54,7 +54,7 @@ Use --format html to generate HTML and open in browser.`,
 func init() {
 	guideCmd.AddCommand(guideAgentsCmd)
 	guideAgentsCmd.Flags().BoolVarP(&guideAgentsInteractive, "interactive", "i", false, "Interactive mode - AI asks questions for personalized guidance")
-	guideAgentsCmd.Flags().BoolVarP(&guideAgentsGlobal, "global", "g", false, "Guide from global ~/.claude/agents/ (default)")
+	guideAgentsCmd.Flags().BoolVarP(&guideAgentsGlobal, "global", "g", false, "Guide from global ~/.claude/agents/")
 	guideAgentsCmd.Flags().BoolVarP(&guideAgentsLocal, "local", "l", false, "Guide from local .claude/agents/")
 	guideAgentsCmd.Flags().BoolVarP(&guideAgentsRefresh, "refresh", "r", false, "Regenerate the guide even if cached")
 	guideAgentsCmd.Flags().StringVarP(&guideAgentsFormat, "format", "f", "", "Output format: html (opens in browser)")
@@ -63,19 +63,15 @@ func init() {
 func runGuideAgents(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	if err := ValidateScopeFlags(guideAgentsGlobal, guideAgentsLocal); err != nil {
-		return err
-	}
-
 	if guideAgentsFormat != "" && guideAgentsFormat != "html" {
 		return fmt.Errorf("invalid format: %s (use 'html')", guideAgentsFormat)
 	}
 
 	agentID := args[0]
 
-	scope := ScopeGlobal
-	if guideAgentsLocal {
-		scope = ScopeLocal
+	scope, err := ResolveScope(guideAgentsGlobal, guideAgentsLocal)
+	if err != nil {
+		return err
 	}
 
 	agentsDir := GetPathByScope(scope, "agents")
@@ -84,7 +80,7 @@ func runGuideAgents(cmd *cobra.Command, args []string) error {
 	a, err := store.Get(agentID)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("agent not found: %s", agentID)
+			return fmt.Errorf("agent not found in %s: %s", ScopeDescription(scope), agentID)
 		}
 		return fmt.Errorf("failed to get agent: %w", err)
 	}

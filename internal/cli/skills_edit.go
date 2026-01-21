@@ -17,13 +17,14 @@ var (
 
 var skillsEditCmd = &cobra.Command{
 	Use:     "edit <skill-name>",
-	Aliases: []string{"e"},
+	Aliases: []string{"e", "update", "modify"},
 	Short:   "Edit an existing skill",
 	Long: `Edit an existing skill in ~/.claude/skills/ (global) or .claude/skills/ (local) directory.
 
 By default, uses Claude CLI to interactively edit the skill content.
 Use --editor to open the skill file directly in your editor.
-Use --local to edit from the current directory's .claude/skills/.`,
+Default scope is local if a .claude directory exists in the current working directory, otherwise global.
+Use --global or --local to override.`,
 	Args:              cobra.ExactArgs(1),
 	RunE:              runSkillsEdit,
 	ValidArgsFunction: skillNameCompletion,
@@ -32,25 +33,19 @@ Use --local to edit from the current directory's .claude/skills/.`,
 func init() {
 	skillsCmd.AddCommand(skillsEditCmd)
 	skillsEditCmd.Flags().BoolVarP(&skillsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
-	skillsEditCmd.Flags().BoolVarP(&skillsEditGlobal, "global", "g", false, "Edit from global ~/.claude/skills/ (default)")
+	skillsEditCmd.Flags().BoolVarP(&skillsEditGlobal, "global", "g", false, "Edit from global ~/.claude/skills/")
 	skillsEditCmd.Flags().BoolVarP(&skillsEditLocal, "local", "l", false, "Edit from local .claude/skills/")
 }
 
 func runSkillsEdit(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
-	// Validate mutually exclusive flags
-	if err := ValidateScopeFlags(skillsEditGlobal, skillsEditLocal); err != nil {
+	scope, err := ResolveScope(skillsEditGlobal, skillsEditLocal)
+	if err != nil {
 		return err
 	}
 
 	name := args[0]
-
-	// Determine scope (default: global)
-	scope := ScopeGlobal
-	if skillsEditLocal {
-		scope = ScopeLocal
-	}
 
 	store := skill.NewStore(GetPathByScope(scope, "skills"))
 
@@ -58,7 +53,7 @@ func runSkillsEdit(cmd *cobra.Command, args []string) error {
 	s, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("skill not found: %s", name)
+			return fmt.Errorf("skill not found in %s: %s", ScopeDescription(scope), name)
 		}
 		return fmt.Errorf("failed to get skill: %w", err)
 	}
