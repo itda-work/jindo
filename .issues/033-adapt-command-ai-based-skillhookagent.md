@@ -97,6 +97,25 @@ jd prompts reset <name>          # embed 기본값으로 초기화
 | `internal/hook/history.go`       | hooks용 버전 관리                       |
 | `internal/agent/history.go`      | agents용 버전 관리                      |
 
+## 추가 개선사항
+
+### adapt 명령 UX 개선
+
+- 시작 시 안내 메시지 출력 (사용법, 종료 방법)
+- Claude가 먼저 대화를 시작하도록 초기 프롬프트 전달
+- 대화형 세션 유지 (`-p` one-shot 모드 제거)
+- 변경 없이 종료 시 불필요한 백업 자동 삭제
+
+### revert 명령 동작 개선
+
+- revert 시 선택 버전 이후의 모든 버전 삭제 (불필요한 백업 생성 제거)
+- 버전 목록에서 현재 활성 버전 `*` 표시
+
+### skills list 출력 개선
+
+- ID(디렉토리명) 전체 출력 (잘림 없음)
+- Description 여러 줄로 단어 단위 줄바꿈
+
 ## 비목표 (Non-goals)
 
 - 대화 중 중간 버전 관리 (시작 vs 최종만 관리)
