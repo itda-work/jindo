@@ -24,7 +24,8 @@ func init() {
 	agentsListCmd.Flags().BoolVar(&agentsListJSON, "json", false, "Output in JSON format")
 }
 
-func runAgentsList(_ *cobra.Command, _ []string) error {
+func runAgentsList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	store := agent.NewStore("~/.claude/agents")
 	agents, err := store.List()
 	if err != nil {

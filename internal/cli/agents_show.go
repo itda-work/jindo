@@ -24,7 +24,8 @@ func init() {
 	agentsShowCmd.Flags().BoolVar(&agentsShowBrief, "brief", false, "Show only metadata (name, description, model)")
 }
 
-func runAgentsShow(_ *cobra.Command, args []string) error {
+func runAgentsShow(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := agent.NewStore("~/.claude/agents")
 

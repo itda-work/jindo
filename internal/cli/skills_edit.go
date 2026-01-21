@@ -28,7 +28,8 @@ func init() {
 	skillsEditCmd.Flags().BoolVarP(&skillsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
 }
 
-func runSkillsEdit(_ *cobra.Command, args []string) error {
+func runSkillsEdit(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := skill.NewStore("~/.claude/skills")
 

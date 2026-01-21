@@ -36,7 +36,8 @@ func init() {
 	agentsNewCmd.Flags().StringVarP(&agentsNewModel, "model", "m", "", "Model to use (for --no-ai mode)")
 }
 
-func runAgentsNew(_ *cobra.Command, args []string) error {
+func runAgentsNew(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 
 	// Get agents directory

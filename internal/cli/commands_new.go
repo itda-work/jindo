@@ -37,7 +37,8 @@ func init() {
 	commandsNewCmd.Flags().StringVarP(&commandsNewDesc, "description", "d", "", "Command description (for --no-ai mode)")
 }
 
-func runCommandsNew(_ *cobra.Command, args []string) error {
+func runCommandsNew(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 
 	// Get commands directory

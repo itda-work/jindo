@@ -46,7 +46,8 @@ type SearchResult struct {
 	MatchIn     string // where the match was found: "name", "description", "content"
 }
 
-func runSearch(_ *cobra.Command, args []string) error {
+func runSearch(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	query := strings.ToLower(args[0])
 
 	var results []SearchResult

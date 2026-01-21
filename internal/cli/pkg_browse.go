@@ -41,7 +41,8 @@ func init() {
 	pkgBrowseCmd.Flags().BoolVar(&pkgBrowseJSON, "json", false, "Output in JSON format")
 }
 
-func runPkgBrowse(_ *cobra.Command, args []string) error {
+func runPkgBrowse(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	// If no namespace provided, launch TUI
 	if len(args) == 0 {
 		manager := pkgmgr.NewManager("~/.itda-jindo")

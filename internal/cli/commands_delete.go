@@ -29,12 +29,13 @@ func init() {
 	commandsDeleteCmd.Flags().BoolVarP(&commandsDeleteForce, "force", "f", false, "Skip confirmation prompt")
 }
 
-func runCommandsDelete(_ *cobra.Command, args []string) error {
+func runCommandsDelete(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := command.NewStore("~/.claude/commands")
 
 	// Get command to verify it exists
-	cmd, err := store.Get(name)
+	c, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("command not found: %s", name)
@@ -45,7 +46,7 @@ func runCommandsDelete(_ *cobra.Command, args []string) error {
 	// Confirm deletion unless --force
 	if !commandsDeleteForce {
 		fmt.Printf("Delete command '%s'?\n", name)
-		fmt.Printf("  Path: %s\n", cmd.Path)
+		fmt.Printf("  Path: %s\n", c.Path)
 		fmt.Print("Type 'yes' to confirm: ")
 
 		reader := bufio.NewReader(os.Stdin)
@@ -62,7 +63,7 @@ func runCommandsDelete(_ *cobra.Command, args []string) error {
 	}
 
 	// Delete the command file
-	if err := os.Remove(cmd.Path); err != nil {
+	if err := os.Remove(c.Path); err != nil {
 		return fmt.Errorf("failed to delete command: %w", err)
 	}
 

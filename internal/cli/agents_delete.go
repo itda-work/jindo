@@ -29,7 +29,8 @@ func init() {
 	agentsDeleteCmd.Flags().BoolVarP(&agentsDeleteForce, "force", "f", false, "Skip confirmation prompt")
 }
 
-func runAgentsDelete(_ *cobra.Command, args []string) error {
+func runAgentsDelete(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := agent.NewStore("~/.claude/agents")
 

@@ -24,7 +24,8 @@ func init() {
 	commandsShowCmd.Flags().BoolVar(&commandsShowBrief, "brief", false, "Show only metadata (name, description)")
 }
 
-func runCommandsShow(_ *cobra.Command, args []string) error {
+func runCommandsShow(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := command.NewStore("~/.claude/commands")
 

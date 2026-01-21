@@ -30,7 +30,8 @@ func init() {
 	skillsDeleteCmd.Flags().BoolVarP(&skillsDeleteForce, "force", "f", false, "Skip confirmation prompt")
 }
 
-func runSkillsDelete(_ *cobra.Command, args []string) error {
+func runSkillsDelete(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := skill.NewStore("~/.claude/skills")
 

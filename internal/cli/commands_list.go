@@ -24,7 +24,8 @@ func init() {
 	commandsListCmd.Flags().BoolVar(&commandsListJSON, "json", false, "Output in JSON format")
 }
 
-func runCommandsList(_ *cobra.Command, _ []string) error {
+func runCommandsList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	store := command.NewStore("~/.claude/commands")
 	commands, err := store.List()
 	if err != nil {

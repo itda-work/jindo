@@ -72,7 +72,8 @@ type ValidationResult struct {
 	Checked  int
 }
 
-func runValidate(_ *cobra.Command, _ []string) error {
+func runValidate(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	result := &ValidationResult{}
 
 	// Determine which resources to validate

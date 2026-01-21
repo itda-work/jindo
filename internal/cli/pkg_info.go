@@ -30,7 +30,8 @@ func init() {
 	pkgInfoCmd.Flags().BoolVar(&pkgInfoJSON, "json", false, "Output in JSON format")
 }
 
-func runPkgInfo(_ *cobra.Command, args []string) error {
+func runPkgInfo(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 
 	manager := pkgmgr.NewManager("~/.itda-jindo")

@@ -27,7 +27,8 @@ func init() {
 	pkgRepoCmd.AddCommand(pkgRepoRemoveCmd)
 }
 
-func runPkgRepoRemove(_ *cobra.Command, args []string) error {
+func runPkgRepoRemove(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	namespace := args[0]
 
 	store := repo.NewStore("~/.itda-jindo")

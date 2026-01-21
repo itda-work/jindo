@@ -24,7 +24,8 @@ func init() {
 	skillsListCmd.Flags().BoolVar(&skillsListJSON, "json", false, "Output in JSON format")
 }
 
-func runSkillsList(_ *cobra.Command, _ []string) error {
+func runSkillsList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	store := skill.NewStore("~/.claude/skills")
 	skills, err := store.List()
 	if err != nil {

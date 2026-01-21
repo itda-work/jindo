@@ -24,7 +24,8 @@ func init() {
 	pkgListCmd.Flags().BoolVar(&pkgListJSON, "json", false, "Output in JSON format")
 }
 
-func runPkgList(_ *cobra.Command, _ []string) error {
+func runPkgList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	manager := pkgmgr.NewManager("~/.itda-jindo")
 
 	packages, err := manager.List()

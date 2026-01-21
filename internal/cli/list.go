@@ -3,14 +3,11 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/itda-work/jindo/internal/agent"
 	"github.com/itda-work/jindo/internal/command"
 	"github.com/itda-work/jindo/internal/skill"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var listJSON bool
@@ -39,7 +36,8 @@ type listOutput struct {
 	Commands []listItem `json:"commands"`
 }
 
-func runList(_ *cobra.Command, _ []string) error {
+func runList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	skillStore := skill.NewStore("~/.claude/skills")
 	agentStore := agent.NewStore("~/.claude/agents")
 	commandStore := command.NewStore("~/.claude/commands")
@@ -63,7 +61,30 @@ func runList(_ *cobra.Command, _ []string) error {
 		return printListJSON(skills, agents, commands)
 	}
 
-	printListGrouped(skills, agents, commands)
+	// Use each type's table output format
+	fmt.Println("=== Skills ===")
+	if len(skills) == 0 {
+		fmt.Println("No skills found.")
+	} else {
+		printSkillsTable(skills)
+	}
+	fmt.Println()
+
+	fmt.Println("=== Agents ===")
+	if len(agents) == 0 {
+		fmt.Println("No agents found.")
+	} else {
+		printAgentsTable(agents)
+	}
+	fmt.Println()
+
+	fmt.Println("=== Commands ===")
+	if len(commands) == 0 {
+		fmt.Println("No commands found.")
+	} else {
+		printCommandsTable(commands)
+	}
+
 	return nil
 }
 
@@ -90,136 +111,4 @@ func printListJSON(skills []*skill.Skill, agents []*agent.Agent, commands []*com
 	}
 	fmt.Println(string(jsonOutput))
 	return nil
-}
-
-func printListGrouped(skills []*skill.Skill, agents []*agent.Agent, commands []*command.Command) {
-	total := 0
-
-	// Get terminal width
-	termWidth := 80
-	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
-		termWidth = w
-	}
-
-	// Calculate max name width for alignment
-	maxNameWidth := 0
-	for _, s := range skills {
-		if len(s.Name) > maxNameWidth {
-			maxNameWidth = len(s.Name)
-		}
-	}
-	for _, a := range agents {
-		if len(a.Name) > maxNameWidth {
-			maxNameWidth = len(a.Name)
-		}
-	}
-	for _, c := range commands {
-		if len(c.Name) > maxNameWidth {
-			maxNameWidth = len(c.Name)
-		}
-	}
-	if maxNameWidth > 30 {
-		maxNameWidth = 30
-	}
-
-	// indent(2) + name + gap(2) + desc
-	indent := 2
-	gap := 2
-	descWidth := termWidth - indent - maxNameWidth - gap
-	if descWidth < 20 {
-		descWidth = 20
-	}
-
-	// Skills
-	fmt.Println("Skills:")
-	if len(skills) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		for _, s := range skills {
-			printItem(s.Name, firstSentence(s.Description), maxNameWidth, descWidth, indent)
-		}
-		total += len(skills)
-	}
-	fmt.Println()
-
-	// Agents
-	fmt.Println("Agents:")
-	if len(agents) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		for _, a := range agents {
-			printItem(a.Name, firstSentence(a.Description), maxNameWidth, descWidth, indent)
-		}
-		total += len(agents)
-	}
-	fmt.Println()
-
-	// Commands
-	fmt.Println("Commands:")
-	if len(commands) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		for _, c := range commands {
-			printItem(c.Name, firstSentence(c.Description), maxNameWidth, descWidth, indent)
-		}
-		total += len(commands)
-	}
-	fmt.Println()
-
-	fmt.Printf("Total: %d items (%d skills, %d agents, %d commands)\n",
-		total, len(skills), len(agents), len(commands))
-}
-
-func printItem(name, desc string, nameWidth, descWidth, indent int) {
-	lines := wrapText(desc, descWidth)
-	if len(lines) == 0 {
-		lines = []string{""}
-	}
-
-	// First line with name
-	fmt.Printf("%*s%-*s  %s\n", indent, "", nameWidth, name, lines[0])
-
-	// Remaining lines with indent
-	padding := strings.Repeat(" ", indent+nameWidth+2)
-	for i := 1; i < len(lines); i++ {
-		fmt.Printf("%s%s\n", padding, lines[i])
-	}
-}
-
-func wrapText(text string, width int) []string {
-	if width <= 0 || len(text) == 0 {
-		return []string{text}
-	}
-
-	var lines []string
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return []string{}
-	}
-
-	currentLine := words[0]
-	for _, word := range words[1:] {
-		if len(currentLine)+1+len(word) <= width {
-			currentLine += " " + word
-		} else {
-			lines = append(lines, currentLine)
-			currentLine = word
-		}
-	}
-	lines = append(lines, currentLine)
-
-	return lines
-}
-
-func firstSentence(s string) string {
-	// Find first sentence ending with . ! or ?
-	for i, r := range s {
-		if r == '.' || r == '!' || r == '?' {
-			// Check if next char is space or end of string (to avoid cutting "e.g." or "v1.0")
-			if i+1 >= len(s) || s[i+1] == ' ' || s[i+1] == '\n' {
-				return strings.TrimSpace(s[:i+1])
-			}
-		}
-	}
-	return strings.TrimSpace(s)
 }

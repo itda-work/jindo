@@ -25,7 +25,8 @@ func init() {
 	skillsShowCmd.Flags().BoolVar(&skillsShowBrief, "brief", false, "Show only frontmatter (name, description, allowed-tools)")
 }
 
-func runSkillsShow(_ *cobra.Command, args []string) error {
+func runSkillsShow(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := skill.NewStore("~/.claude/skills")
 

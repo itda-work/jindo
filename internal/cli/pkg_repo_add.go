@@ -37,7 +37,8 @@ func init() {
 	pkgRepoAddCmd.Flags().StringVarP(&pkgRepoAddNamespace, "namespace", "n", "", "Custom namespace for the repository")
 }
 
-func runPkgRepoAdd(_ *cobra.Command, args []string) error {
+func runPkgRepoAdd(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	url := args[0]
 
 	// Parse URL to generate namespace if not provided

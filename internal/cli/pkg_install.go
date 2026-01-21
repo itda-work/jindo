@@ -35,7 +35,8 @@ func init() {
 	pkgCmd.AddCommand(pkgInstallCmd)
 }
 
-func runPkgInstall(_ *cobra.Command, args []string) error {
+func runPkgInstall(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	spec := args[0]
 
 	manager := pkgmgr.NewManager("~/.itda-jindo")

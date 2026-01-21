@@ -31,7 +31,8 @@ func init() {
 	pkgUpdateCmd.Flags().BoolVar(&pkgUpdateApply, "apply", false, "Apply available updates")
 }
 
-func runPkgUpdate(_ *cobra.Command, args []string) error {
+func runPkgUpdate(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	manager := pkgmgr.NewManager("~/.itda-jindo")
 
 	fmt.Println("Checking for updates...")

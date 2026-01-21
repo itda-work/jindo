@@ -26,7 +26,8 @@ func init() {
 	pkgRepoCmd.AddCommand(pkgRepoUpdateCmd)
 }
 
-func runPkgRepoUpdate(_ *cobra.Command, args []string) error {
+func runPkgRepoUpdate(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	store := repo.NewStore("~/.itda-jindo")
 
 	if len(args) == 0 {

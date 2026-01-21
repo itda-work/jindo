@@ -28,7 +28,8 @@ func init() {
 	agentsEditCmd.Flags().BoolVarP(&agentsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
 }
 
-func runAgentsEdit(_ *cobra.Command, args []string) error {
+func runAgentsEdit(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := agent.NewStore("~/.claude/agents")
 

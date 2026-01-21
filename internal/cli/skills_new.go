@@ -37,7 +37,8 @@ func init() {
 	skillsNewCmd.Flags().StringVarP(&skillsNewTools, "tools", "t", "", "Allowed tools, comma-separated (for --no-ai mode)")
 }
 
-func runSkillsNew(_ *cobra.Command, args []string) error {
+func runSkillsNew(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 
 	// Get skills directory

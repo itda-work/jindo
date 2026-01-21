@@ -28,12 +28,13 @@ func init() {
 	commandsEditCmd.Flags().BoolVarP(&commandsEditEditor, "editor", "e", false, "Open in editor directly (skip AI)")
 }
 
-func runCommandsEdit(_ *cobra.Command, args []string) error {
+func runCommandsEdit(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	name := args[0]
 	store := command.NewStore("~/.claude/commands")
 
 	// Get command to verify it exists and get its path
-	cmd, err := store.Get(name)
+	c, err := store.Get(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("command not found: %s", name)
@@ -43,7 +44,7 @@ func runCommandsEdit(_ *cobra.Command, args []string) error {
 
 	// If --editor flag, just open in editor
 	if commandsEditEditor {
-		return openEditor(cmd.Path)
+		return openEditor(c.Path)
 	}
 
 	// Get current content for context
@@ -59,11 +60,11 @@ func runCommandsEdit(_ *cobra.Command, args []string) error {
 	}
 
 	// Write updated content
-	if err := os.WriteFile(cmd.Path, []byte(newContent), 0644); err != nil {
+	if err := os.WriteFile(c.Path, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to write command file: %w", err)
 	}
 
-	fmt.Printf("Updated command: %s\n", cmd.Path)
+	fmt.Printf("Updated command: %s\n", c.Path)
 	return nil
 }
 

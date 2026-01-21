@@ -24,7 +24,8 @@ func init() {
 	pkgRepoListCmd.Flags().BoolVar(&pkgRepoListJSON, "json", false, "Output in JSON format")
 }
 
-func runPkgRepoList(_ *cobra.Command, _ []string) error {
+func runPkgRepoList(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
 	store := repo.NewStore("~/.itda-jindo")
 
 	repos, err := store.List()

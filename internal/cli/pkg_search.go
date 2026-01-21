@@ -32,7 +32,8 @@ func init() {
 	pkgSearchCmd.Flags().BoolVar(&pkgSearchJSON, "json", false, "Output in JSON format")
 }
 
-func runPkgSearch(_ *cobra.Command, args []string) error {
+func runPkgSearch(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	query := args[0]
 
 	store := repo.NewStore("~/.itda-jindo")
