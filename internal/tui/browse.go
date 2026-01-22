@@ -71,21 +71,30 @@ type installDoneMsg struct {
 	errors []string
 }
 
+// uninstallDoneMsg is sent when uninstallation completes
+type uninstallDoneMsg struct {
+	success bool
+	name    string
+	err     error
+}
+
 // Model represents the TUI state
 type Model struct {
-	tabs            []Tab
-	activeTab       Tab
-	items           map[Tab][]PackageItem
-	cursor          int
-	listOffset      int    // Scroll offset for list panel
-	width           int
-	height          int
-	manager         *pkgmgr.Manager
-	message         string
-	quitting        bool
-	preview         string // Cached preview content
-	namespaceFilter string // Filter by namespace (empty = all)
-	installing      bool   // True while installation is in progress
+	tabs                []Tab
+	activeTab           Tab
+	items               map[Tab][]PackageItem
+	cursor              int
+	listOffset          int    // Scroll offset for list panel
+	width               int
+	height              int
+	manager             *pkgmgr.Manager
+	message             string
+	quitting            bool
+	preview             string // Cached preview content
+	namespaceFilter     string // Filter by namespace (empty = all)
+	installing          bool   // True while installation is in progress
+	confirmingUninstall bool   // True when waiting for uninstall confirmation
+	confirmingItem      *PackageItem
 }
 
 // Styles
@@ -137,15 +146,16 @@ var (
 
 // Key bindings
 type keyMap struct {
-	Up       key.Binding
-	Down     key.Binding
-	Left     key.Binding
-	Right    key.Binding
-	Tab      key.Binding
-	Select   key.Binding
-	Install  key.Binding
+	Up        key.Binding
+	Down      key.Binding
+	Left      key.Binding
+	Right     key.Binding
+	Tab       key.Binding
+	Select    key.Binding
+	Install   key.Binding
+	Uninstall key.Binding
 	SelectAll key.Binding
-	Quit     key.Binding
+	Quit      key.Binding
 }
 
 var keys = keyMap{
@@ -176,6 +186,10 @@ var keys = keyMap{
 	Install: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "install"),
+	),
+	Uninstall: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "uninstall"),
 	),
 	SelectAll: key.NewBinding(
 		key.WithKeys("a"),
@@ -395,9 +409,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case uninstallDoneMsg:
+		m.confirmingUninstall = false
+		if msg.success {
+			// Update item state in all tabs
+			for tab := range m.items {
+				for i := range m.items[tab] {
+					item := &m.items[tab][i]
+					namespacedName := pkgmgr.MakeNamespacedName(item.Namespace, item.Name)
+					if namespacedName == msg.name {
+						item.IsInstalled = false
+						item.Selected = false
+						break
+					}
+				}
+			}
+			m.message = fmt.Sprintf("✓ Uninstalled %s", msg.name)
+		} else {
+			m.message = fmt.Sprintf("✗ Failed to uninstall: %v", msg.err)
+		}
+		m.confirmingItem = nil
+		return m, nil
+
 	case tea.KeyMsg:
 		// Ignore key presses while installing
 		if m.installing {
+			return m, nil
+		}
+
+		// Handle confirmation prompt
+		if m.confirmingUninstall {
+			switch msg.String() {
+			case "y", "Y":
+				// Proceed with uninstall
+				m.message = "Uninstalling..."
+				return m, m.uninstallPackage(m.confirmingItem)
+			case "n", "N", "esc", "q":
+				// Cancel
+				m.confirmingUninstall = false
+				m.confirmingItem = nil
+				m.message = "Cancelled"
+				return m, nil
+			}
+			// Ignore other keys during confirmation
 			return m, nil
 		}
 
@@ -489,6 +543,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.installing = true
 			m.message = "Installing..."
 			return m, m.installSelected()
+
+		case key.Matches(msg, keys.Uninstall):
+			item := m.getCurrentItem()
+			if item != nil && item.IsInstalled {
+				// Show confirmation prompt
+				m.confirmingUninstall = true
+				m.confirmingItem = item
+				namespacedName := pkgmgr.MakeNamespacedName(item.Namespace, item.Name)
+				m.message = fmt.Sprintf("Uninstall '%s'? [y/N]", namespacedName)
+				return m, nil
+			}
+			return m, nil
 		}
 	}
 
@@ -517,6 +583,27 @@ func (m *Model) installSelected() tea.Cmd {
 			}
 		}
 		return installDoneMsg{count: installedCount, errors: errors}
+	}
+}
+
+// uninstallPackage uninstalls a single package
+func (m *Model) uninstallPackage(item *PackageItem) tea.Cmd {
+	return func() tea.Msg {
+		namespacedName := pkgmgr.MakeNamespacedName(item.Namespace, item.Name)
+		err := m.manager.Uninstall(namespacedName)
+		if err != nil {
+			return uninstallDoneMsg{
+				success: false,
+				name:    namespacedName,
+				err:     err,
+			}
+		}
+
+		return uninstallDoneMsg{
+			success: true,
+			name:    namespacedName,
+			err:     nil,
+		}
 	}
 }
 
@@ -736,7 +823,7 @@ func (m Model) View() string {
 	// Help
 	b.WriteString(strings.Repeat("─", m.width))
 	b.WriteString("\n")
-	help := helpStyle.Render("↑/↓: navigate  ←/→/tab: switch tab  space: select  a: select all  enter: install  q: quit")
+	help := helpStyle.Render("↑/↓: navigate  ←/→/tab: switch tab  space: select  a: select all  enter: install  d: uninstall  q: quit")
 	b.WriteString(help)
 
 	return b.String()
