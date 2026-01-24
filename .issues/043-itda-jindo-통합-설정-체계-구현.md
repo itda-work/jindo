@@ -75,25 +75,57 @@ delay = 1000
 
 ## 작업 내용
 
-### 1. 설정 라이브러리 구현 (internal/config/)
+### 1. 설정 라이브러리 구현 (pkg/config/)
 
-- [ ] TOML 파서 연동 (pelletier/go-toml/v2 또는 BurntSushi/toml)
-- [ ] 설정 파일 경로 관리 (~/.config/itda-jindo/config.toml)
-- [ ] 환경변수 오버라이드 지원
-- [ ] 공통 설정 및 앱별 설정 읽기/쓰기 API
+- [x] TOML 파서 연동 (pelletier/go-toml/v2)
+- [x] 설정 파일 경로 관리 (~/.config/itda-jindo/config.toml)
+- [x] 환경변수 오버라이드 지원 (JINDO\_\* 형식)
+- [x] 공통 설정 및 앱별 설정 읽기/쓰기 API
 
 ### 2. CLI 명령어 구현 (jd config)
 
-- [ ] `jd config init` - 설정 파일 초기화
-- [ ] `jd config set <key> <value>` - 설정값 변경
-- [ ] `jd config get <key>` - 설정값 조회
-- [ ] `jd config list` - 전체 설정 출력
-- [ ] `jd config edit` - 에디터로 설정 파일 열기
+- [x] `jd config init` - 설정 파일 초기화
+- [x] `jd config set <key> <value>` - 설정값 변경
+- [x] `jd config get <key>` - 설정값 조회
+- [x] `jd config list` - 전체 설정 출력
+- [x] `jd config edit` - 에디터로 설정 파일 열기
+- [x] `jd config guide` - 활용 가이드 출력
 
 ### 3. 활용 가이드 문서화
 
-- [ ] 다른 skills에서 통합 설정을 활용하는 방법 문서화
-- [ ] Go 모듈로 import하여 사용하는 예제 코드
+- [x] 다른 skills에서 통합 설정을 활용하는 방법 문서화 (`jd config guide`)
+- [x] Go 모듈로 import하여 사용하는 예제 코드
+
+## 구현 결과
+
+### 생성된 파일
+
+| 경로                           | 설명                             |
+| ------------------------------ | -------------------------------- |
+| `pkg/config/paths.go`          | XDG 경로 관리                    |
+| `pkg/config/dotnotation.go`    | 점 표기법 키 파싱                |
+| `pkg/config/config.go`         | Config 타입 및 Load/Save/Get/Set |
+| `internal/cli/config.go`       | 부모 명령                        |
+| `internal/cli/config_init.go`  | init 명령                        |
+| `internal/cli/config_set.go`   | set 명령                         |
+| `internal/cli/config_get.go`   | get 명령                         |
+| `internal/cli/config_list.go`  | list 명령                        |
+| `internal/cli/config_edit.go`  | edit 명령                        |
+| `internal/cli/config_guide.go` | guide 명령                       |
+
+### 다른 skills에서 사용하기
+
+```go
+import "github.com/itda-work/jindo/pkg/config"
+
+cfg, err := config.Load()
+if err != nil {
+    return err
+}
+
+// 환경변수 우선, 없으면 config 파일에서 읽기
+apiKey, found := cfg.GetWithEnv("common.api_keys.tiingo")
+```
 
 ## 명령어 예시
 
