@@ -1,0 +1,17 @@
+{
+  "name": "itda-jindo",
+  "owner": {
+    "name": "itda-skills"
+  },
+  "metadata": {
+    "description": "Claude Code 설정 관리 CLI 도구 - skills, commands, agents, hooks 패키지 관리"
+  },
+  "plugins": [
+    {
+      "name": "jindo-tools",
+      "description": "Claude Code 설정 관리 CLI 도구",
+      "source": "./",
+      "version": "0.1.0"
+    }
+  ]
+}
