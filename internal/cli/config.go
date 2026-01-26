@@ -7,10 +7,10 @@ import (
 var configCmd = &cobra.Command{
 	Use:     "config",
 	Aliases: []string{"cfg"},
-	Short:   "Manage itda-jindo configuration",
-	Long: `Manage the unified configuration for itda-jindo and all skills.
+	Short:   "Manage itda-skills configuration",
+	Long: `Manage the unified configuration for itda-skills and all skills.
 
-Configuration is stored in ~/.config/itda-jindo/config.toml (TOML format).
+Configuration is stored in ~/.config/itda-skills/config.toml (TOML format).
 Use dot notation to access nested values: common.api_keys.tiingo
 
 Examples:

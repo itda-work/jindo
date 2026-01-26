@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/itda-jindo/jindo/pkg/config"
+	"github.com/itda-skills/jindo/pkg/config"
 	"github.com/spf13/cobra"
 )
 

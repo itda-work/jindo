@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 )
 
 // Tab represents a tab in the TUI

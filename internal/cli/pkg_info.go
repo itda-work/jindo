@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ func runPkgInfo(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	name := args[0]
 
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	pkg, err := manager.Get(name)
 	if err != nil {

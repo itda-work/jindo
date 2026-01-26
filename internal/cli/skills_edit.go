@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/itda-jindo/jindo/internal/skill"
+	"github.com/itda-skills/jindo/internal/skill"
 	"github.com/spf13/cobra"
 )
 

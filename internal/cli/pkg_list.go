@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ func init() {
 
 func runPkgList(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	packages, err := manager.List()
 	if err != nil {

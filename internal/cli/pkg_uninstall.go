@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ func runPkgUninstall(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	name := args[0]
 
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	// Get package info first for display
 	pkg, err := manager.Get(name)

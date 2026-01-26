@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
 	"github.com/spf13/cobra"
 )
 
@@ -24,9 +24,9 @@ Examples:
   jd pkg install affa-ever:commands/commit.md
   jd pkg install affa-ever:skills/web-fetch@v1.2.0
 
-Installed packages are placed in ~/.itda-jindo/ with namespace prefixes:
-  ~/.itda-jindo/skills/affa-ever--web-fetch/
-  ~/.itda-jindo/commands/affa-ever--commit.md`,
+Installed packages are placed in ~/.itda-skills/ with namespace prefixes:
+  ~/.itda-skills/skills/affa-ever--web-fetch/
+  ~/.itda-skills/commands/affa-ever--commit.md`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPkgInstall,
 }
@@ -39,7 +39,7 @@ func runPkgInstall(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	spec := args[0]
 
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	// Validate spec format
 	parsedSpec, err := pkgmgr.ParseSpec(spec)

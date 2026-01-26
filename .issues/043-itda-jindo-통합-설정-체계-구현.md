@@ -1,6 +1,6 @@
 ---
 number: 43
-title: 'feat: itda-jindo 통합 설정 체계 구현'
+title: 'feat: itda-skills 통합 설정 체계 구현'
 state: done
 labels:
   - feature
@@ -12,7 +12,7 @@ closed_at: '2026-01-24T15:29:05Z'
 
 ## Background
 
-itda-jindo 하위에 여러 유틸리티(skills.quant-data, skills.igm, skills.hangul, skills.web-auto)가
+itda-skills 하위에 여러 유틸리티(skills.quant-data, skills.igm, skills.hangul, skills.web-auto)가
 존재하며, 각각이 독립적인 설정 파일을 가질 경우 관리 복잡성이 증가합니다.
 현재는 문제가 없지만, 유틸리티가 늘어날수록 설정 파일 난립, API 키 중복 관리,
 설정 방식 불일치 문제가 예상됩니다.
@@ -26,7 +26,7 @@ itda-jindo 하위에 여러 유틸리티(skills.quant-data, skills.igm, skills.h
 
 ## Goal
 
-1. **단일 설정 파일**: `~/.config/itda-jindo/config.toml` 하나로 모든 설정 통합
+1. **단일 설정 파일**: `~/.config/itda-skills/config.toml` 하나로 모든 설정 통합
 2. **계층형 구조**: 공통 설정 + 유틸리티별 섹션으로 구분
 3. **CLI 통합**: 모든 유틸리티가 동일한 설정 명령어 체계 사용
 4. **구현 위치**: `jindo` 앱에서 통합 설정 체계 구현
@@ -35,7 +35,7 @@ itda-jindo 하위에 여러 유틸리티(skills.quant-data, skills.igm, skills.h
 ### 예상 설정 파일 구조
 
 ```toml
-# ~/.config/itda-jindo/config.toml
+# ~/.config/itda-skills/config.toml
 
 [common]
 default_market = "kr"
@@ -71,14 +71,14 @@ delay = 1000
 
 - **언어**: Go
 - **포맷**: TOML
-- **경로**: XDG Base Directory 스펙 준수 (`~/.config/itda-jindo/`)
+- **경로**: XDG Base Directory 스펙 준수 (`~/.config/itda-skills/`)
 
 ## 작업 내용
 
 ### 1. 설정 라이브러리 구현 (pkg/config/)
 
 - [x] TOML 파서 연동 (pelletier/go-toml/v2)
-- [x] 설정 파일 경로 관리 (~/.config/itda-jindo/config.toml)
+- [x] 설정 파일 경로 관리 (~/.config/itda-skills/config.toml)
 - [x] 환경변수 오버라이드 지원 (JINDO\_\* 형식)
 - [x] 공통 설정 및 앱별 설정 읽기/쓰기 API
 
@@ -116,7 +116,7 @@ delay = 1000
 ### 다른 skills에서 사용하기
 
 ```go
-import "github.com/itda-jindo/jindo/pkg/config"
+import "github.com/itda-skills/jindo/pkg/config"
 
 cfg, err := config.Load()
 if err != nil {

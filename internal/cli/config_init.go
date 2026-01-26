@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/itda-jindo/jindo/pkg/config"
+	"github.com/itda-skills/jindo/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ var configInitCmd = &cobra.Command{
 	Short: "Initialize configuration file",
 	Long: `Create a new configuration file with default template.
 
-The config file is created at ~/.config/itda-jindo/config.toml.
+The config file is created at ~/.config/itda-skills/config.toml.
 If the file already exists, use --force to overwrite it.`,
 	RunE: runConfigInit,
 }

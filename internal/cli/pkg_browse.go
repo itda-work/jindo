@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
-	"github.com/itda-jindo/jindo/internal/tui"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -73,11 +73,11 @@ func runPkgBrowse(cmd *cobra.Command, args []string) error {
 	}
 
 	// Launch TUI (with optional namespace filter)
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	// Validate namespace exists if provided
 	if namespace != "" {
-		store := repo.NewStore("~/.itda-jindo")
+		store := repo.NewStore("~/.itda-skills")
 		if _, err := store.Get(namespace); err != nil {
 			return fmt.Errorf("repository '%s' not found", namespace)
 		}
@@ -87,7 +87,7 @@ func runPkgBrowse(cmd *cobra.Command, args []string) error {
 }
 
 func runPkgBrowseCLI(namespace string) error {
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 
 	// Validate type filter
 	var typeFilter repo.PackageType
@@ -164,7 +164,7 @@ func pkgBrowseCompletion(_ *cobra.Command, args []string, _ string) ([]string, c
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 	repos, err := store.List()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp

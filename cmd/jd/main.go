@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/itda-jindo/jindo/internal/cli"
+	"github.com/itda-skills/jindo/internal/cli"
 )
 
 func main() {

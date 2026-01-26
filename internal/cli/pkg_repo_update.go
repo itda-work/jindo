@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ func init() {
 
 func runPkgRepoUpdate(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 
 	if len(args) == 0 {
 		// Update all

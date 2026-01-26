@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ func runPkgRepoRemove(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	namespace := args[0]
 
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 
 	// Check if exists
 	config, err := store.Get(namespace)

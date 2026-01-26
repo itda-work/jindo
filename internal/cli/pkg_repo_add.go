@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +47,7 @@ func runPkgRepoAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid URL format. Use: gh:owner/repo")
 	}
 
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 
 	namespace := pkgRepoAddNamespace
 	if namespace == "" {

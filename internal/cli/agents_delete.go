@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/agent"
+	"github.com/itda-skills/jindo/internal/agent"
 	"github.com/spf13/cobra"
 )
 

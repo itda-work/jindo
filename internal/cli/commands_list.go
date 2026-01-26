@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/command"
+	"github.com/itda-skills/jindo/internal/command"
 	"github.com/spf13/cobra"
 )
 

@@ -7,13 +7,13 @@ import (
 
 const (
 	// AppName is the application name used in config paths
-	AppName = "itda-jindo"
+	AppName = "itda-skills"
 	// ConfigFileName is the name of the configuration file
 	ConfigFileName = "config.toml"
 )
 
 // GetConfigDir returns the config directory path.
-// Respects XDG_CONFIG_HOME environment variable, defaults to ~/.config/itda-jindo/
+// Respects XDG_CONFIG_HOME environment variable, defaults to ~/.config/itda-skills/
 func GetConfigDir() (string, error) {
 	configHome := os.Getenv("XDG_CONFIG_HOME")
 	if configHome == "" {
@@ -26,7 +26,7 @@ func GetConfigDir() (string, error) {
 	return filepath.Join(configHome, AppName), nil
 }
 
-// GetConfigPath returns the full config file path (~/.config/itda-jindo/config.toml)
+// GetConfigPath returns the full config file path (~/.config/itda-skills/config.toml)
 func GetConfigPath() (string, error) {
 	dir, err := GetConfigDir()
 	if err != nil {

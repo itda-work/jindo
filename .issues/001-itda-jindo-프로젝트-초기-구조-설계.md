@@ -1,6 +1,6 @@
 ---
 number: 1
-title: itda-jindo 프로젝트 초기 구조 설계
+title: itda-skills 프로젝트 초기 구조 설계
 state: done
 labels:
   - epic
@@ -12,13 +12,13 @@ closed_at: '2026-01-20T14:22:16Z'
 
 ## 개요
 
-Golang 기반 itda-jindo CLI와 Claude Code 리소스 구조를 설계하고 구현합니다.
+Golang 기반 itda-skills CLI와 Claude Code 리소스 구조를 설계하고 구현합니다.
 
 ## 목표 구조
 
 ```text
-itda-jindo/
-├── cmd/itda-jindo/                  # Go CLI 엔트리포인트
+itda-skills/
+├── cmd/itda-skills/                  # Go CLI 엔트리포인트
 ├── internal/                      # Go 내부 패키지
 ├── resources/                     # 임베디드 리소스
 │   └── .claude/
@@ -36,7 +36,7 @@ itda-jindo/
 ## 하위 작업
 
 - [ ] Go 프로젝트 초기화 (go.mod)
-- [ ] CLI 기본 구조 (cmd/itda-jindo)
+- [ ] CLI 기본 구조 (cmd/itda-skills)
 - [ ] init 명령 구현
 - [ ] .claude/ 리소스 템플릿 생성
 - [ ] 설치 스크립트 작성

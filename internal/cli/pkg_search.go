@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ func runPkgSearch(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	query := args[0]
 
-	store := repo.NewStore("~/.itda-jindo")
+	store := repo.NewStore("~/.itda-skills")
 
 	results, err := store.Search(query)
 	if err != nil {

@@ -3,7 +3,7 @@ package pkgmgr
 import (
 	"time"
 
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 )
 
 // InstalledFile represents an installed file.

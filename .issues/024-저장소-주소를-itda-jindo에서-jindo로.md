@@ -1,6 +1,6 @@
 ---
 number: 24
-title: 저장소 주소를 itda-jindo에서 jindo로 변경
+title: 저장소 주소를 itda-skills에서 jindo로 변경
 state: done
 labels: []
 assignees: []
@@ -13,11 +13,11 @@ GitHub 저장소 이름 변경에 따른 코드 내 참조 업데이트
 
 ## 변경 내용
 
-- Go 모듈 경로: github.com/itda-jindo/itda-jindo → github.com/itda-jindo/jindo
-- GitHub 저장소 참조: itda-jindo/itda-jindo → itda-jindo/jindo
-- CDN URL: itda-jindo/itda-jindo@main → itda-jindo/jindo@main
+- Go 모듈 경로: github.com/itda-skills/itda-skills → github.com/itda-skills/jindo
+- GitHub 저장소 참조: itda-skills/itda-skills → itda-skills/jindo
+- CDN URL: itda-skills/itda-skills@main → itda-skills/jindo@main
 - 문서 업데이트: README.md, CLAUDE.md
 
 ## 유지 항목
 
-- 로컬 설치 경로 ~/.itda-jindo (기존 사용자 호환성)
+- 로컬 설치 경로 ~/.itda-skills (기존 사용자 호환성)

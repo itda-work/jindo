@@ -35,7 +35,7 @@ jd pkg
 ## 저장 경로
 
 ```text
-~/.itda-jindo/
+~/.itda-skills/
 ├── repos.json           # 등록된 저장소 목록
 ├── installed.json       # 설치된 패키지 정보
 ├── repos/               # git clone된 저장소들

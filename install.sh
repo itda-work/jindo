@@ -4,7 +4,7 @@
 # Installation script
 #
 # Usage:
-#   curl -fsSL https://cdn.jsdelivr.net/gh/itda-jindo/jindo@main/install.sh | bash
+#   curl -fsSL https://cdn.jsdelivr.net/gh/itda-skills/jindo@main/install.sh | bash
 #
 # Options:
 #   VERSION        - Specific version to install (default: latest)
@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-REPO="itda-jindo/jindo"
+REPO="itda-skills/jindo"
 BINARY="jd"
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 

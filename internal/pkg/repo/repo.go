@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/itda-jindo/jindo/internal/pkg/git"
+	"github.com/itda-skills/jindo/internal/pkg/git"
 )
 
 const (

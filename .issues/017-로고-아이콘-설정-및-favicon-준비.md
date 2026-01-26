@@ -12,7 +12,7 @@ closed_at: '2026-01-20T14:14:57Z'
 
 ## 개요
 
-`~/Downloads/itda-jindo.png` 로고 아이콘을 프로젝트에 추가하고, README.md 상단 배치 및 favicon 풀 세트를 준비합니다.
+`~/Downloads/itda-skills.png` 로고 아이콘을 프로젝트에 추가하고, README.md 상단 배치 및 favicon 풀 세트를 준비합니다.
 
 ## 작업 내용
 

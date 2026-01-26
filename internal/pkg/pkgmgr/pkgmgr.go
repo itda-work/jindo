@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/itda-jindo/jindo/internal/pkg/git"
-	"github.com/itda-jindo/jindo/internal/pkg/repo"
+	"github.com/itda-skills/jindo/internal/pkg/git"
+	"github.com/itda-skills/jindo/internal/pkg/repo"
 )
 
 const (
@@ -34,7 +34,7 @@ var installSpecRegex = regexp.MustCompile(`^([a-z0-9-]+):(.+?)(?:@(.+))?$`)
 
 // Manager manages installed packages.
 type Manager struct {
-	baseDir   string          // ~/.itda-jindo (for metadata: installed.json, repos)
+	baseDir   string          // ~/.itda-skills (for metadata: installed.json, repos)
 	claudeDir string          // ~/.claude (for actual installed files)
 	repoStore *repo.Store
 }

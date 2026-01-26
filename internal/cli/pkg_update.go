@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/itda-jindo/jindo/internal/pkg/pkgmgr"
+	"github.com/itda-skills/jindo/internal/pkg/pkgmgr"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ func init() {
 
 func runPkgUpdate(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
-	manager := pkgmgr.NewManager("~/.itda-jindo")
+	manager := pkgmgr.NewManager("~/.itda-skills")
 
 	fmt.Println("Checking for updates...")
 

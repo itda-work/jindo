@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/itda-jindo/jindo/internal/agent"
-	"github.com/itda-jindo/jindo/internal/command"
-	"github.com/itda-jindo/jindo/internal/hook"
-	"github.com/itda-jindo/jindo/internal/skill"
+	"github.com/itda-skills/jindo/internal/agent"
+	"github.com/itda-skills/jindo/internal/command"
+	"github.com/itda-skills/jindo/internal/hook"
+	"github.com/itda-skills/jindo/internal/skill"
 	"github.com/spf13/cobra"
 )
 

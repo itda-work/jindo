@@ -24,17 +24,17 @@ func runConfigGuide(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-const configGuideContent = `# itda-jindo 통합 설정 활용 가이드
+const configGuideContent = `# itda-skills 통합 설정 활용 가이드
 
 ## 개요
 
-itda-jindo는 ~/.config/itda-jindo/config.toml에서 모든 skills의 설정을 통합 관리합니다.
+itda-skills는 ~/.config/itda-skills/config.toml에서 모든 skills의 설정을 통합 관리합니다.
 각 skill은 jindo의 config 패키지를 import하여 설정을 읽고 쓸 수 있습니다.
 
 ## 설정 파일 구조
 
 ` + "```toml" + `
-# ~/.config/itda-jindo/config.toml
+# ~/.config/itda-skills/config.toml
 
 [common]
 default_market = "kr"
@@ -61,7 +61,7 @@ delay = 1000
 ### 1. import
 
 ` + "```go" + `
-import "github.com/itda-jindo/jindo/pkg/config"
+import "github.com/itda-skills/jindo/pkg/config"
 ` + "```" + `
 
 ### 2. 설정 로드

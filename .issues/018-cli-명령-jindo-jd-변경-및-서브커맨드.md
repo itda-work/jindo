@@ -34,4 +34,4 @@ closed_at: '2026-01-20T13:04:28Z'
 
 ### 모듈명
 
-- `github.com/itda-jindo/itda-jindo` 유지
+- `github.com/itda-skills/itda-skills` 유지

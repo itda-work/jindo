@@ -8,15 +8,15 @@
 
 .EXAMPLE
     # Install latest version
-    irm https://cdn.jsdelivr.net/gh/itda-jindo/jindo@main/install.ps1 | iex
+    irm https://cdn.jsdelivr.net/gh/itda-skills/jindo@main/install.ps1 | iex
 
 .EXAMPLE
     # Install to custom directory
-    $env:JD_INSTALL_DIR = "C:\tools"; irm https://cdn.jsdelivr.net/gh/itda-jindo/jindo@main/install.ps1 | iex
+    $env:JD_INSTALL_DIR = "C:\tools"; irm https://cdn.jsdelivr.net/gh/itda-skills/jindo@main/install.ps1 | iex
 
 .EXAMPLE
     # Install specific version
-    $env:VERSION = "v0.1.0"; irm https://cdn.jsdelivr.net/gh/itda-jindo/jindo@main/install.ps1 | iex
+    $env:VERSION = "v0.1.0"; irm https://cdn.jsdelivr.net/gh/itda-skills/jindo@main/install.ps1 | iex
 
 .NOTES
     Installs to: $env:USERPROFILE\.local\bin\jd.exe
@@ -24,7 +24,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "itda-jindo/jindo"
+$Repo = "itda-skills/jindo"
 $BinaryName = "jd"
 $DefaultInstallDir = Join-Path $env:USERPROFILE ".local\bin"
 
