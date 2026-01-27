@@ -141,9 +141,9 @@ func ParseValue(s string) any {
 }
 
 // toEnvKey converts dot notation to environment variable format
-// "common.api_keys.tiingo" -> "JINDO_COMMON_API_KEYS_TIINGO"
+// "common.api_keys.tiingo" -> "ITDA_COMMON_API_KEYS_TIINGO"
 func toEnvKey(dotKey string) string {
 	upper := strings.ToUpper(dotKey)
 	underscored := strings.ReplaceAll(upper, ".", "_")
-	return "JINDO_" + underscored
+	return "ITDA_" + underscored
 }

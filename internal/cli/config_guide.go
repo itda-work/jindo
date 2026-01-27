@@ -95,16 +95,16 @@ if formatStr, ok := format.(string); ok {
 
 ` + "```go" + `
 // GetWithEnv는 환경변수를 먼저 확인합니다
-// JINDO_SKILLS_QUANT_DATA_DEFAULT_FORMAT 환경변수가 있으면 그 값을 반환
+// ITDA_SKILLS_QUANT_DATA_DEFAULT_FORMAT 환경변수가 있으면 그 값을 반환
 value, found := cfg.GetWithEnv("skills.quant-data.default_format")
 if !found {
     // 설정이 없음
 }
 ` + "```" + `
 
-환경변수 형식: JINDO_<KEY> (대문자, 점은 밑줄로 변환)
-- skills.quant-data.default_format → JINDO_SKILLS_QUANT_DATA_DEFAULT_FORMAT
-- common.api_keys.tiingo → JINDO_COMMON_API_KEYS_TIINGO
+환경변수 형식: ITDA_<KEY> (대문자, 점은 밑줄로 변환)
+- skills.quant-data.default_format → ITDA_SKILLS_QUANT_DATA_DEFAULT_FORMAT
+- common.api_keys.tiingo → ITDA_COMMON_API_KEYS_TIINGO
 
 ### 5. 값 쓰기
 

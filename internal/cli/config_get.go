@@ -22,7 +22,7 @@ For leaf values, prints the value directly.
 For nested sections, prints the section in TOML format.
 
 Use --env to also check environment variable override.
-Environment variables use the format: JINDO_<KEY> (uppercase, dots replaced with underscores)
+Environment variables use the format: ITDA_<KEY> (uppercase, dots replaced with underscores)
 
 Examples:
   jd config get common.api_keys.tiingo

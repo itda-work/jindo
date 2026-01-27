@@ -102,7 +102,7 @@ func (c *Config) Delete(key string) error {
 }
 
 // GetWithEnv retrieves a value, checking environment variable first
-// Env var format: JINDO_<SECTION>_<KEY> (uppercase, underscores)
+// Env var format: ITDA_<SECTION>_<KEY> (uppercase, underscores)
 // Returns the value and a boolean indicating if found
 func (c *Config) GetWithEnv(key string) (any, bool) {
 	// Check environment variable first
