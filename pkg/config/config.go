@@ -119,6 +119,15 @@ func (c *Config) GetWithEnv(key string) (any, bool) {
 	return val, true
 }
 
+// GetWithVendorEnv retrieves a value checking vendor env var, then ITDA_ env var, then config file.
+// vendorEnvVar is the vendor-specific environment variable name (e.g., "OPENAI_API_KEY").
+func (c *Config) GetWithVendorEnv(key, vendorEnvVar string) (any, bool) {
+	if envVal := os.Getenv(vendorEnvVar); envVal != "" {
+		return ParseValue(envVal), true
+	}
+	return c.GetWithEnv(key)
+}
+
 // ToMap returns the full config as a nested map
 func (c *Config) ToMap() map[string]any {
 	return c.data
@@ -150,18 +159,8 @@ const DefaultTemplate = `# itda-skills Configuration
 [common.api_keys]
 # tiingo = "your-api-key"
 # polygon = "your-api-key"
-
-# [skills.quant-data]
-# default_format = "json"
-
-# [skills.igm]
-# Add igm-specific settings here
-
-# [skills.hangul]
-# Add hangul-specific settings here
-
-# [skills.web-auto]
-# Add web-auto-specific settings here
+# openai = "your-api-key"
+# elevenlabs = "your-api-key"
 `
 
 // InitConfig creates a new config file with the default template
